@@ -67,6 +67,10 @@ public class ChatService {
                 .collect(Collectors.toList());
     }
 
+    public List<Message> getMessagesByUserId(Long userId) {
+        return messageRepository.findMessagesBySenderId(userId);
+    }
+
     public List<MessageDto> getConversationBetweenUsers(String userId) {
         // This would need to be implemented based on your chat logic
         // For now, return empty list

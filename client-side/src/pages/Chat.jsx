@@ -16,6 +16,9 @@ const Chat = () => {
   const [connectionError, setConnectionError] = useState(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef(null);
+  
+  // Generate a unique session ID for this browser instance
+  const sessionId = useRef(Math.random().toString(36).substr(2, 9)).current;
 
   // WebSocket connection management
   useEffect(() => {
@@ -87,7 +90,6 @@ const Chat = () => {
 
   const loadConversations = async () => {
     try {
-      // TODO: Replace with actual API call
       const response = await fetch('http://localhost:8081/api/chat/conversations', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -108,6 +110,8 @@ const Chat = () => {
       loadMessages(selectedConversation.ride.id);
       // Subscribe to ride chat
       chatService.subscribeToRideChat(selectedConversation.ride.id, handleNewMessage);
+      // Join the ride chat
+      chatService.joinRideChat(selectedConversation.ride.id, user.id.toString());
     }
     
     return () => {
@@ -138,12 +142,62 @@ const Chat = () => {
   };
 
   const handleNewMessage = (message) => {
-    setMessages(prev => [...prev, message]);
+    console.log(`[Session ${sessionId}] Received new message:`, message);
+    
+    // Check if this message is from the current user
+    const isFromCurrentUser = message.senderId === user.id.toString();
+    
+    setMessages(prev => {
+      // Remove any optimistic messages with the same content from current user
+      const filteredMessages = isFromCurrentUser 
+        ? prev.filter(msg => !msg.isOptimistic || msg.content !== message.content)
+        : prev;
+      
+      // Check if this message already exists - use a more specific comparison
+      const messageExists = filteredMessages.some(msg => {
+        // If both messages have IDs, compare by ID
+        if (msg.id && message.id && msg.id === message.id) {
+          return true;
+        }
+        
+        // If both messages have the same content, sender, and timestamp (within 5 seconds), consider it a duplicate
+        const contentMatch = msg.content === message.content;
+        const senderMatch = (msg.senderId === message.senderId) || 
+                           (msg.sender && msg.sender.id && msg.sender.id.toString() === message.senderId);
+        
+        if (contentMatch && senderMatch) {
+          const msgTime = new Date(msg.timestamp || msg.createdAt).getTime();
+          const newMsgTime = new Date(message.timestamp).getTime();
+          const timeDiff = Math.abs(msgTime - newMsgTime);
+          
+          // If messages are within 5 seconds of each other, consider it a duplicate
+          if (timeDiff < 5000) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      if (!messageExists) {
+        // Add the new message
+        const newMessage = {
+          ...message,
+          timestamp: new Date(message.timestamp || Date.now())
+        };
+        console.log(`[Session ${sessionId}] Adding new message to UI:`, newMessage);
+        return [...filteredMessages, newMessage];
+      }
+      
+      console.log(`[Session ${sessionId}] Message already exists, not adding duplicate`);
+      return filteredMessages;
+    });
+    
     // Update conversation last message
-    if (selectedConversation) {
+    if (selectedConversation && message.rideId === selectedConversation.ride.id) {
       setConversations(prev => prev.map(conv => 
         conv.ride.id === message.rideId 
-          ? { ...conv, lastMessage: message.content, lastMessageTime: new Date(message.timestamp) }
+          ? { ...conv, lastMessage: message.content, lastMessageTime: new Date(message.timestamp || Date.now()) }
           : conv
       ));
     }
@@ -171,25 +225,7 @@ const Chat = () => {
       selectedConversation.ride.id
     );
 
-    if (success) {
-      // Optimistically add message to UI
-      const tempMessage = {
-        id: Date.now(),
-        content: messageContent,
-        sender: { id: user.id, name: user.name },
-        timestamp: new Date(),
-        isOptimistic: true
-      };
-      
-      setMessages(prev => [...prev, tempMessage]);
-      
-      // Update conversation last message
-      setConversations(prev => prev.map(conv => 
-        conv.ride.id === selectedConversation.ride.id 
-          ? { ...conv, lastMessage: messageContent, lastMessageTime: new Date() }
-          : conv
-      ));
-    } else {
+    if (!success) {
       alert('Failed to send message. Please check your connection.');
     }
   };
@@ -269,68 +305,75 @@ const Chat = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 h-96">
+        <div className="grid grid-cols-1 md:grid-cols-3 h-[600px]">
           {/* Conversations List */}
-          <div className="border-r border-gray-200 bg-gray-50">
-            <div className="p-4 border-b border-gray-200">
+          <div className="border-r border-gray-200 bg-gray-50 flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
             </div>
-                          <div className="overflow-y-auto h-full">
-                {conversations.length > 0 ? (
-                  conversations.map((conversation) => (
-                    <div
-                      key={conversation.id}
-                      onClick={() => setSelectedConversation(conversation)}
-                      className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
-                        selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <User className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
+            <div className="flex-1 overflow-y-auto">
+              {conversations.length > 0 ? (
+                conversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => setSelectedConversation(conversation)}
+                    className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
+                      selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <User className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
                             <h3 className="text-sm font-medium text-gray-900 truncate">
                               {conversation.user.name}
                             </h3>
-                            <span className="text-xs text-gray-500">
-                              {formatTime(conversation.lastMessageTime)}
-                            </span>
+                            {conversation.isOwner && (
+                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                Your Ride
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-gray-600 truncate">
-                            {conversation.ride.pickup} → {conversation.ride.destination}
-                          </p>
-                          <p className="text-sm text-gray-700 truncate">
-                            {conversation.lastMessage}
-                          </p>
-                          {conversation.unreadCount > 0 && (
-                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                              {conversation.unreadCount}
-                            </span>
-                          )}
+                          <span className="text-xs text-gray-500">
+                            {formatTime(conversation.lastMessageTime)}
+                          </span>
                         </div>
+                        <p className="text-xs text-gray-600 truncate">
+                          {conversation.ride.pickup} → {conversation.ride.destination}
+                        </p>
+                        <p className="text-sm text-gray-700 truncate">
+                          {conversation.lastMessage}
+                        </p>
+                        {conversation.unreadCount > 0 && (
+                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                            {conversation.unreadCount}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-gray-500">
-                    {isConnected ? (
-                      <div>
-                        <MessageCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-sm">No conversations yet</p>
-                        <p className="text-xs">Start chatting about rides!</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <WifiOff className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-sm">Not connected to chat</p>
-                        <p className="text-xs">Connect to start messaging</p>
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-gray-500">
+                  {isConnected ? (
+                    <div>
+                      <MessageCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm">No conversations yet</p>
+                      <p className="text-xs">Start chatting about rides!</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <WifiOff className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm">Not connected to chat</p>
+                      <p className="text-xs">Connect to start messaging</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Chat Area */}
@@ -338,7 +381,7 @@ const Chat = () => {
             {selectedConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
                   <div className="flex items-center space-x-3">
                     <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                       <User className="h-4 w-4 text-blue-600" />
@@ -365,12 +408,28 @@ const Chat = () => {
                     </div>
                   ) : messages.length > 0 ? (
                     messages.map((message, index) => {
-                      const isOwnMessage = message.sender.id === user.id;
+                      // Check if this message is from the current user
+                      // Handle both ChatMessage (senderId string) and MessageDto (sender object) structures
+                      let messageSenderId;
+                      if (message.senderId) {
+                        // ChatMessage structure (WebSocket)
+                        messageSenderId = message.senderId;
+                      } else if (message.sender && message.sender.id) {
+                        // MessageDto structure (API)
+                        messageSenderId = message.sender.id.toString();
+                      } else {
+                        // Fallback
+                        messageSenderId = null;
+                      }
+                      
+                      const currentUserIdString = user.id.toString();
+                      const isOwnMessage = messageSenderId === currentUserIdString;
+                      
                       const showDate = index === 0 || 
                         formatDate(message.timestamp) !== formatDate(messages[index - 1].timestamp);
 
                       return (
-                        <div key={message.id}>
+                        <div key={`${message.id || 'temp'}-${messageSenderId || 'unknown'}-${index}-${message.timestamp}`}>
                           {showDate && (
                             <div className="text-center mb-4">
                               <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
@@ -409,7 +468,7 @@ const Chat = () => {
                 </div>
 
                 {/* Message Input */}
-                <div className="p-4 border-t border-gray-200 bg-white">
+                <div className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
                   <div className="flex space-x-2">
                     <input
                       type="text"

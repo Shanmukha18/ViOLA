@@ -2,6 +2,9 @@ package com.viola.server_side.controller;
 
 import com.viola.server_side.dto.ChatMessage;
 import com.viola.server_side.dto.MessageDto;
+import com.viola.server_side.entity.Ride;
+import com.viola.server_side.repository.RideRepository;
+import com.viola.server_side.security.JwtUtil;
 import com.viola.server_side.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,36 +16,61 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.stream.Collectors;
+import com.viola.server_side.entity.Message;
+import com.viola.server_side.entity.User;
+import com.viola.server_side.repository.UserRepository;
+import com.viola.server_side.repository.MessageRepository;
 
 @Controller
 @RequiredArgsConstructor
 @Slf4j
+@CrossOrigin(origins = "*")
 public class ChatController {
 
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final RideRepository rideRepository;
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
 
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
     public ChatMessage sendMessage(@Payload ChatMessage chatMessage) {
         log.info("Received message: {}", chatMessage);
+        log.info("Message details - senderId: {}, rideId: {}, content: {}", 
+                chatMessage.getSenderId(), chatMessage.getRideId(), chatMessage.getContent());
         
         // Save message to database
         MessageDto savedMessage = chatService.saveMessage(chatMessage);
+        log.info("Message saved to database with ID: {}", savedMessage.getId());
+        
+        // Send to ride-specific chat if rideId is provided
+        if (chatMessage.getRideId() != null) {
+            String topic = "/topic/ride." + chatMessage.getRideId();
+            messagingTemplate.convertAndSend(topic, chatMessage);
+            log.info("Message sent to topic: {}", topic);
+        } else {
+            log.warn("No rideId provided for message, not sending to ride chat");
+        }
         
         // Send to specific user if it's a private message
         if (chatMessage.getReceiverId() != null && !chatMessage.getReceiverId().isEmpty()) {
             messagingTemplate.convertAndSendToUser(
                 chatMessage.getReceiverId(),
-                "/queue/messages",
+                "/queue/private",
                 chatMessage
             );
+            log.info("Private message sent to user: {}", chatMessage.getReceiverId());
         }
         
         return chatMessage;
@@ -64,13 +92,6 @@ public class ChatController {
         if (principal != null) {
             String rideId = chatMessage.getRideId().toString();
             String userId = principal.getName();
-            
-            // Subscribe user to ride-specific chat
-            messagingTemplate.convertAndSendToUser(
-                userId,
-                "/queue/ride." + rideId,
-                chatMessage
-            );
             
             log.info("User {} joined ride chat {}", userId, rideId);
         }
@@ -95,60 +116,114 @@ public class ChatController {
 
     // REST endpoints for chat history
     @GetMapping("/api/chat/ride/{rideId}")
+    @ResponseBody
     public List<MessageDto> getRideChatHistory(@PathVariable Long rideId) {
         return chatService.getMessagesByRideId(rideId);
     }
 
     @GetMapping("/api/chat/conversation/{userId}")
+    @ResponseBody
     public List<MessageDto> getConversationHistory(@PathVariable String userId) {
         return chatService.getConversationBetweenUsers(userId);
     }
 
     @GetMapping("/api/chat/unread")
+    @ResponseBody
     public List<MessageDto> getUnreadMessages() {
         return chatService.getUnreadMessagesForUser();
     }
 
     @GetMapping("/api/chat/conversations")
-    public List<Map<String, Object>> getConversations() {
-        // TODO: Implement actual conversation logic
-        // For now, return mock data for testing
+    @ResponseBody
+    public List<Map<String, Object>> getConversations(HttpServletRequest request) {
+        // Extract user ID from JWT token
+        String token = extractTokenFromRequest(request);
+        Long userId = jwtUtil.extractUserId(token);
+        
+        // Get user's rides and conversations
         List<Map<String, Object>> conversations = new ArrayList<>();
         
-        Map<String, Object> conv1 = new HashMap<>();
-        conv1.put("id", 1L);
-        conv1.put("user", Map.of(
-            "id", 2L,
-            "name", "John Doe",
-            "email", "john@vit.ac.in"
-        ));
-        conv1.put("ride", Map.of(
-            "id", 1L,
-            "pickup", "VIT Main Gate",
-            "destination", "T Nagar"
-        ));
-        conv1.put("lastMessage", "Hi, is this ride still available?");
-        conv1.put("lastMessageTime", LocalDateTime.now().minusMinutes(30));
-        conv1.put("unreadCount", 2);
-        conversations.add(conv1);
+        // Get rides created by the user
+        List<Ride> userRides = rideRepository.findByOwnerIdAndIsActiveTrueOrderByCreatedAtDesc(userId);
+        for (Ride ride : userRides) {
+            // Find the most recent message sender (other than the ride owner) to show as conversation partner
+            List<Message> rideMessages = messageRepository.findMessagesByRideId(ride.getId());
+            User conversationPartner = null;
+            
+            if (!rideMessages.isEmpty()) {
+                // Find the first message from someone other than the ride owner
+                for (Message msg : rideMessages) {
+                    if (!msg.getSender().getId().equals(userId)) {
+                        conversationPartner = msg.getSender();
+                        break;
+                    }
+                }
+            }
+            
+            // If no conversation partner found, use a default or skip
+            if (conversationPartner == null) {
+                conversationPartner = ride.getOwner(); // Fallback to owner
+            }
+            
+            Map<String, Object> conv = new HashMap<>();
+            conv.put("id", ride.getId());
+            conv.put("ride", Map.of(
+                "id", ride.getId(),
+                "pickup", ride.getPickup(),
+                "destination", ride.getDestination()
+            ));
+            conv.put("user", Map.of(
+                "id", conversationPartner.getId(),
+                "name", conversationPartner.getName(),
+                "email", conversationPartner.getEmail()
+            ));
+            conv.put("lastMessage", ride.getPickup() + " to " + ride.getDestination());
+            conv.put("lastMessageTime", ride.getCreatedAt());
+            conv.put("unreadCount", 0);
+            conv.put("isOwner", true);
+            conversations.add(conv);
+        }
         
-        Map<String, Object> conv2 = new HashMap<>();
-        conv2.put("id", 2L);
-        conv2.put("user", Map.of(
-            "id", 3L,
-            "name", "Jane Smith",
-            "email", "jane@vit.ac.in"
-        ));
-        conv2.put("ride", Map.of(
-            "id", 2L,
-            "pickup", "Chennai Central",
-            "destination", "VIT Campus"
-        ));
-        conv2.put("lastMessage", "What time are you leaving?");
-        conv2.put("lastMessageTime", LocalDateTime.now().minusHours(2));
-        conv2.put("unreadCount", 0);
-        conversations.add(conv2);
+        // Get rides where user participated in chats (but didn't create the ride)
+        List<Message> userMessages = chatService.getMessagesByUserId(userId);
+        Set<Long> participatedRideIds = userMessages.stream()
+            .map(msg -> msg.getRide().getId())
+            .collect(Collectors.toSet());
+        
+        // Remove rides that user already owns (to avoid duplicates)
+        participatedRideIds.removeAll(userRides.stream().map(Ride::getId).collect(Collectors.toSet()));
+        
+        for (Long rideId : participatedRideIds) {
+            Ride ride = rideRepository.findById(rideId).orElse(null);
+            if (ride != null && ride.getIsActive()) {
+                Map<String, Object> conv = new HashMap<>();
+                conv.put("id", ride.getId());
+                conv.put("ride", Map.of(
+                    "id", ride.getId(),
+                    "pickup", ride.getPickup(),
+                    "destination", ride.getDestination()
+                ));
+                conv.put("user", Map.of(
+                    "id", ride.getOwner().getId(),
+                    "name", ride.getOwner().getName(),
+                    "email", ride.getOwner().getEmail()
+                ));
+                conv.put("lastMessage", ride.getPickup() + " to " + ride.getDestination());
+                conv.put("lastMessageTime", ride.getCreatedAt());
+                conv.put("unreadCount", 0);
+                conv.put("isOwner", false);
+                conversations.add(conv);
+            }
+        }
         
         return conversations;
+    }
+    
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        throw new RuntimeException("No valid token found");
     }
 }

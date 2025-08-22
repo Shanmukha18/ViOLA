@@ -30,6 +30,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/ws/**").permitAll()
                 .requestMatchers("/api/rides").permitAll()
+                .requestMatchers("/api/chat/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

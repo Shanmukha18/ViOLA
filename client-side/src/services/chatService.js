@@ -20,14 +20,22 @@ class ChatService {
 
         this.stompClient.connect(
             (frame) => {
-                console.log('Connected to WebSocket:', frame);
+                // Success callback
+                console.log('WebSocket CONNECTED:', frame);
                 this.connected = true;
-                if (onConnected) onConnected();
+                if (onConnected) onConnected(frame);
             },
-            (error) => {
-                console.error('WebSocket connection error:', error);
-                this.connected = false;
-                if (onError) onError(error);
+            (frame) => {
+                // Check if this is actually a CONNECTED frame (success) or an error
+                if (frame && frame.command === 'CONNECTED') {
+                    console.log('WebSocket CONNECTED (via error callback):', frame);
+                    this.connected = true;
+                    if (onConnected) onConnected(frame);
+                } else {
+                    console.error('WebSocket connection error:', frame);
+                    this.connected = false;
+                    if (onError) onError(frame);
+                }
             }
         );
     }
@@ -46,7 +54,7 @@ class ChatService {
         }
 
         const subscription = this.stompClient.subscribe(
-            `/user/queue/ride.${rideId}`,
+            `/topic/ride.${rideId}`,
             (message) => {
                 const chatMessage = JSON.parse(message.body);
                 if (onMessageReceived) onMessageReceived(chatMessage);
