@@ -15,6 +15,8 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
@@ -138,10 +140,26 @@ public class ChatController {
     public List<Map<String, Object>> getConversations(HttpServletRequest request) {
         // Extract user ID from JWT token
         String token = extractTokenFromRequest(request);
-        Long userId = jwtUtil.extractUserId(token);
+        if (token == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing JWT token");
+        }
+        
+        try {
+            String username = jwtUtil.extractUsername(token);
+            if (!jwtUtil.validateToken(token, username)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+            }
+            
+            Long userId = jwtUtil.extractUserId(token);
         
         // Get user's rides and conversations
         List<Map<String, Object>> conversations = new ArrayList<>();
+        
+        // Get unread messages for this user to check which conversations have unread messages
+        List<Message> unreadMessages = messageRepository.findUnreadMessagesForUser(userId);
+        Set<Long> unreadRideIds = unreadMessages.stream()
+            .map(msg -> msg.getRide().getId())
+            .collect(Collectors.toSet());
         
         // Get rides created by the user
         List<Ride> userRides = rideRepository.findByOwnerIdAndIsActiveTrueOrderByCreatedAtDesc(userId);
@@ -165,6 +183,9 @@ public class ChatController {
                 conversationPartner = ride.getOwner(); // Fallback to owner
             }
             
+            // Check if this conversation has unread messages
+            boolean hasUnreadMessages = unreadRideIds.contains(ride.getId());
+            
             Map<String, Object> conv = new HashMap<>();
             conv.put("id", ride.getId());
             conv.put("ride", Map.of(
@@ -179,7 +200,7 @@ public class ChatController {
             ));
             conv.put("lastMessage", ride.getPickup() + " to " + ride.getDestination());
             conv.put("lastMessageTime", ride.getCreatedAt());
-            conv.put("unreadCount", 0);
+            conv.put("hasUnreadMessages", hasUnreadMessages);
             conv.put("isOwner", true);
             conversations.add(conv);
         }
@@ -196,6 +217,9 @@ public class ChatController {
         for (Long rideId : participatedRideIds) {
             Ride ride = rideRepository.findById(rideId).orElse(null);
             if (ride != null && ride.getIsActive()) {
+                // Check if this conversation has unread messages
+                boolean hasUnreadMessages = unreadRideIds.contains(rideId);
+                
                 Map<String, Object> conv = new HashMap<>();
                 conv.put("id", ride.getId());
                 conv.put("ride", Map.of(
@@ -210,13 +234,78 @@ public class ChatController {
                 ));
                 conv.put("lastMessage", ride.getPickup() + " to " + ride.getDestination());
                 conv.put("lastMessageTime", ride.getCreatedAt());
-                conv.put("unreadCount", 0);
+                conv.put("hasUnreadMessages", hasUnreadMessages);
                 conv.put("isOwner", false);
                 conversations.add(conv);
             }
         }
         
         return conversations;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+        }
+    }
+
+    @GetMapping("/api/chat/unread-count")
+    @ResponseBody
+    public Map<String, Object> getUnreadCount(HttpServletRequest request) {
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing JWT token");
+        }
+        
+        try {
+            String username = jwtUtil.extractUsername(token);
+            if (!jwtUtil.validateToken(token, username)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+            }
+            
+            Long userId = jwtUtil.extractUserId(token);
+            
+            // Get unread messages count
+            List<Message> unreadMessages = messageRepository.findUnreadMessagesForUser(userId);
+            int count = unreadMessages.size();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("count", count);
+            response.put("hasUnread", count > 0);
+            return response;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+        }
+    }
+
+    @PostMapping("/api/chat/mark-read/{rideId}")
+    @ResponseBody
+    public Map<String, Object> markRideAsRead(@PathVariable Long rideId, HttpServletRequest request) {
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing JWT token");
+        }
+        
+        try {
+            String username = jwtUtil.extractUsername(token);
+            if (!jwtUtil.validateToken(token, username)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+            }
+            
+            Long userId = jwtUtil.extractUserId(token);
+            
+            // Mark all unread messages for this ride as read
+            List<Message> unreadMessages = messageRepository.findUnreadMessagesForUser(userId);
+            for (Message message : unreadMessages) {
+                if (message.getRide().getId().equals(rideId)) {
+                    message.setIsRead(true);
+                    messageRepository.save(message);
+                }
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            return response;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+        }
     }
     
     private String extractTokenFromRequest(HttpServletRequest request) {

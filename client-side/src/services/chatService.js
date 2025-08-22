@@ -18,6 +18,10 @@ class ChatService {
             'Authorization': `Bearer ${token}`
         };
 
+        // Configure automatic reconnection
+        this.stompClient.reconnect_delay = 3000; // 3 seconds
+        this.stompClient.max_reconnect_attempts = 10;
+
         this.stompClient.connect(
             (frame) => {
                 // Success callback

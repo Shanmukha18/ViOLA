@@ -44,7 +44,7 @@ public class RideService {
     }
     
     public List<RideDto> getRidesByOwner(Long ownerId) {
-        return rideRepository.findByOwnerIdAndIsActiveTrueOrderByCreatedAtDesc(ownerId)
+        return rideRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId)
                 .stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());

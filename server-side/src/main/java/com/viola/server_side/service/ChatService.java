@@ -31,15 +31,18 @@ public class ChatService {
             User sender = userRepository.findById(Long.parseLong(chatMessage.getSenderId()))
                     .orElseThrow(() -> new RuntimeException("Sender not found"));
             
+            // Find ride first
+            Ride ride = rideRepository.findById(chatMessage.getRideId())
+                    .orElseThrow(() -> new RuntimeException("Ride not found"));
+            
             User receiver = null;
             if (chatMessage.getReceiverId() != null && !chatMessage.getReceiverId().isEmpty()) {
                 receiver = userRepository.findById(Long.parseLong(chatMessage.getReceiverId()))
                         .orElseThrow(() -> new RuntimeException("Receiver not found"));
+            } else {
+                // If no specific receiver, set it to the ride owner (for ride-based chat)
+                receiver = ride.getOwner();
             }
-
-            // Find ride
-            Ride ride = rideRepository.findById(chatMessage.getRideId())
-                    .orElseThrow(() -> new RuntimeException("Ride not found"));
 
             // Create and save message
             Message message = new Message();

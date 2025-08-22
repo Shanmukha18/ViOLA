@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import { Car, MessageCircle, User, HelpCircle, LogOut } from 'lucide-react';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { unreadCount } = useUnread();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
@@ -51,13 +53,18 @@ const Navbar = () => {
                 
                 <Link
                   to="/chat"
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
                     isActive('/chat') 
                       ? 'text-blue-600 bg-blue-50' 
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                   }`}
                 >
-                  <MessageCircle className="h-4 w-4" />
+                                     <div className="relative">
+                     <MessageCircle className="h-4 w-4" />
+                     {unreadCount > 0 && (
+                       <span className="absolute -top-2 -right-2 bg-red-500 rounded-full h-3 w-3"></span>
+                     )}
+                   </div>
                   <span>Chat</span>
                 </Link>
               </>
@@ -85,7 +92,7 @@ const Navbar = () => {
                   className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                 >
                   <User className="h-4 w-4" />
-                  <span>{user?.name}</span>
+                  <span>Profile</span>
                 </Link>
                 
                 <button

@@ -1,11 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import { useLocation } from 'react-router-dom';
 import { Send, MessageCircle, User, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 import chatService from '../services/chatService';
 
+// Add custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f1f5f9;
+  }
+  .force-scrollbar {
+    overflow-y: scroll !important;
+  }
+  .chat-container {
+    height: 100%;
+    overflow: hidden;
+  }
+  .chat-messages {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+`;
+
 const Chat = () => {
   const { user, token } = useAuth();
+  const { markConversationAsRead, isConversationUnread, setUnreadCount, addUnreadConversation, refreshUnreadCount } = useUnread();
   const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -15,7 +50,7 @@ const Chat = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const messagesEndRef = useRef(null);
+
   
   // Generate a unique session ID for this browser instance
   const sessionId = useRef(Math.random().toString(36).substr(2, 9)).current;
@@ -30,6 +65,25 @@ const Chat = () => {
       chatService.disconnect();
     };
   }, [token, user]);
+
+  // Automatic reconnection
+  useEffect(() => {
+    let reconnectTimer;
+    
+    if (!isConnected && !isConnecting && token && user) {
+      // Wait 3 seconds before attempting to reconnect
+      reconnectTimer = setTimeout(() => {
+        console.log('Attempting to reconnect...');
+        connectToWebSocket();
+      }, 3000);
+    }
+    
+    return () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+    };
+  }, [isConnected, isConnecting, token, user]);
 
   const connectToWebSocket = () => {
     if (!token) return;
@@ -53,11 +107,7 @@ const Chat = () => {
     );
   };
 
-  const disconnectFromWebSocket = () => {
-    chatService.disconnect();
-    setIsConnected(false);
-    setConnectionError(null);
-  };
+
 
   // Handle ride context from navigation
   useEffect(() => {
@@ -99,11 +149,16 @@ const Chat = () => {
       if (response.ok) {
         const data = await response.json();
         setConversations(data);
+        
+        // Refresh unread count after loading conversations
+        refreshUnreadCount();
       }
     } catch (error) {
       console.error('Failed to load conversations:', error);
     }
   };
+
+
 
   useEffect(() => {
     if (selectedConversation && isConnected) {
@@ -141,11 +196,32 @@ const Chat = () => {
     }
   };
 
+
+
   const handleNewMessage = (message) => {
     console.log(`[Session ${sessionId}] Received new message:`, message);
     
     // Check if this message is from the current user
     const isFromCurrentUser = message.senderId === user.id.toString();
+    
+    // If message is from another user and either no conversation is selected or it's not the currently selected conversation, mark as unread
+    if (!isFromCurrentUser && (!selectedConversation || message.rideId !== selectedConversation.ride.id)) {
+      console.log('Marking message as unread:', message);
+      // Find the conversation for this ride and mark it as unread
+      setConversations(prev => prev.map(conv => {
+        if (conv.ride.id === message.rideId) {
+          console.log('Updating conversation unread status for ride:', conv.ride.id);
+          return { ...conv, hasUnreadMessages: true };
+        }
+        return conv;
+      }));
+      
+      // Add to unread conversations set
+      const conversationId = conversations.find(conv => conv.ride.id === message.rideId)?.id;
+      if (conversationId) {
+        addUnreadConversation(conversationId);
+      }
+    }
     
     setMessages(prev => {
       // Remove any optimistic messages with the same content from current user
@@ -203,12 +279,47 @@ const Chat = () => {
     }
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  const scrollToBottomButton = () => {
+    const messagesContainer = document.querySelector('.chat-messages');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  };
+
+  const handleConversationSelect = async (conversation) => {
+    setSelectedConversation(conversation);
+    
+    // Mark conversation as read when selected
+    if (isConversationUnread(conversation.id)) {
+      markConversationAsRead(conversation.id);
+    }
+    
+    // Call backend to mark messages as read
+    if (conversation.hasUnreadMessages) {
+      try {
+        await fetch(`http://localhost:8081/api/chat/mark-read/${conversation.ride.id}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        // Reset unread status for this conversation
+        setConversations(prev => prev.map(conv => {
+          if (conv.id === conversation.id && conv.hasUnreadMessages) {
+            return { ...conv, hasUnreadMessages: false };
+          }
+          return conv;
+        }));
+        
+        // Refresh unread count
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (error) {
+        console.error('Failed to mark conversation as read:', error);
+      }
+    }
   };
 
   const handleSendMessage = () => {
@@ -249,113 +360,103 @@ const Chat = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Connection Status */}
-      <div className="mb-4 p-4 bg-white rounded-lg shadow-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
-            <div className="flex items-center space-x-2">
-              {isConnecting && (
-                <div className="flex items-center space-x-1 text-yellow-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                  <span className="text-sm">Connecting...</span>
-                </div>
-              )}
-              {isConnected && (
-                <div className="flex items-center space-x-1 text-green-600">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-sm">Connected</span>
-                </div>
-              )}
-              {!isConnected && !isConnecting && (
-                <div className="flex items-center space-x-1 text-red-600">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-sm">Disconnected</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex space-x-2">
-            {!isConnected && !isConnecting && (
-              <button
-                onClick={connectToWebSocket}
-                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Reconnect
-              </button>
-            )}
-            {isConnected && (
-              <button
-                onClick={disconnectFromWebSocket}
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              >
-                Disconnect
-              </button>
-            )}
-          </div>
-        </div>
-        
-        {connectionError && (
-          <div className="mt-2 flex items-center space-x-2 text-red-600">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">{connectionError}</span>
-          </div>
-        )}
-      </div>
+      <style>{scrollbarStyles}</style>
+             {/* Chat Header with Connection Status */}
+       <div className="mb-4 p-4 bg-white rounded-lg shadow-md">
+         <div className="flex items-center justify-between">
+           <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+           
+           {/* Connection Status Indicator */}
+           <div className="flex items-center space-x-2">
+             {isConnecting && (
+               <div className="flex items-center space-x-1 text-yellow-600">
+                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>
+                 <span className="text-xs">Connecting...</span>
+               </div>
+             )}
+             {isConnected && (
+               <div className="flex items-center space-x-1 text-green-600">
+                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                 <span className="text-xs">Connected</span>
+               </div>
+             )}
+             {!isConnected && !isConnecting && (
+               <div className="flex items-center space-x-1 text-red-600">
+                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                 <span className="text-xs">Reconnecting...</span>
+               </div>
+             )}
+           </div>
+         </div>
+         
+         {connectionError && (
+           <div className="mt-2 flex items-center space-x-2 text-red-600">
+             <AlertCircle className="h-4 w-4" />
+             <span className="text-sm">Connection lost. Reconnecting automatically...</span>
+           </div>
+         )}
+       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 h-[600px]">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden h-[700px]">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-3 h-full"
+          onWheel={(e) => {
+            e.stopPropagation();
+          }}
+        >
           {/* Conversations List */}
           <div className="border-r border-gray-200 bg-gray-50 flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto">
+                         <div className="p-4 border-b border-gray-200 flex-shrink-0 bg-white">
+               <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
+             </div>
+            <div 
+              className="flex-1 overflow-y-auto custom-scrollbar force-scrollbar"
+              onWheel={(e) => {
+                e.stopPropagation();
+              }}
+            >
               {conversations.length > 0 ? (
-                conversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    onClick={() => setSelectedConversation(conversation)}
-                    className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
-                      selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
-                    }`}
-                  >
+                                                 conversations.map((conversation) => {
+                  const isUnread = conversation.hasUnreadMessages;
+                  return (
+                    <div
+                      key={conversation.id}
+                      onClick={() => handleConversationSelect(conversation)}
+                      className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
+                        selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                      } ${isUnread ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
+                    >
                     <div className="flex items-start space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                         <User className="h-5 w-5 text-blue-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="text-sm font-medium text-gray-900 truncate">
-                              {conversation.user.name}
-                            </h3>
-                            {conversation.isOwner && (
-                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                Your Ride
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {formatTime(conversation.lastMessageTime)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600 truncate">
-                          {conversation.ride.pickup} → {conversation.ride.destination}
-                        </p>
-                        <p className="text-sm text-gray-700 truncate">
-                          {conversation.lastMessage}
-                        </p>
-                        {conversation.unreadCount > 0 && (
-                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                            {conversation.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
+                                                 <div className="flex items-center justify-between">
+                           <h3 className={`text-sm font-medium truncate ${
+                             isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
+                           }`}>
+                             {conversation.user.name}
+                           </h3>
+                           <span className="text-xs text-gray-500 flex-shrink-0">
+                             {formatTime(conversation.lastMessageTime)}
+                           </span>
+                         </div>
+                                                   <p className={`text-sm truncate ${
+                            isUnread ? 'font-bold text-gray-900' : 'text-gray-700'
+                          }`}>
+                            {conversation.lastMessage}
+                          </p>
+                         {conversation.isOwner && (
+                           <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-1">
+                             Your Ride
+                           </span>
+                         )}
+                                                 
+                       </div>
+                     </div>
+                   </div>
+                 );
+               })
               ) : (
                 <div className="p-4 text-center text-gray-500">
                   {isConnected ? (
@@ -376,29 +477,48 @@ const Chat = () => {
             </div>
           </div>
 
-          {/* Chat Area */}
-          <div className="md:col-span-2 flex flex-col">
+                     {/* Chat Area */}
+           <div className="md:col-span-2 flex flex-col chat-container">
             {selectedConversation ? (
               <>
-                {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {selectedConversation.user.name}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {selectedConversation.ride.pickup} → {selectedConversation.ride.destination}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                                 {/* Chat Header - Fixed at top */}
+                 <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
+                   <div className="flex items-center space-x-3">
+                     <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                       <User className="h-5 w-5 text-blue-600" />
+                     </div>
+                     <div className="flex-1">
+                       <h3 className="text-lg font-semibold text-gray-900">
+                         {selectedConversation.user.name}
+                       </h3>
+                       <p className="text-sm text-gray-500">
+                         {selectedConversation.ride.pickup} → {selectedConversation.ride.destination}
+                       </p>
+                     </div>
+                                           <div className="flex items-center space-x-2">
+                        {selectedConversation.isOwner && (
+                          <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+                            Your Ride
+                          </span>
+                        )}
+                        <button
+                          onClick={scrollToBottomButton}
+                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                          title="Scroll to bottom"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                   </div>
+                 </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                                 {/* Messages - Scrollable area */}
+                 <div 
+                   className="flex-1 p-4 space-y-4 bg-gray-50 custom-scrollbar force-scrollbar chat-messages"
+                   onWheel={(e) => {
+                     e.stopPropagation();
+                   }}
+                 >
                   {isLoadingMessages ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
@@ -464,10 +584,10 @@ const Chat = () => {
                       </div>
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
+                  
                 </div>
 
-                {/* Message Input */}
+                {/* Message Input - Fixed at bottom */}
                 <div className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
                   <div className="flex space-x-2">
                     <input

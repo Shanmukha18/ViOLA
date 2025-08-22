@@ -20,7 +20,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
            "ORDER BY m.createdAt ASC")
     List<Message> findMessagesByRideId(Long rideId);
     
-    @Query("SELECT m FROM Message m WHERE m.receiver.id = :userId AND m.isRead = false " +
+    @Query("SELECT m FROM Message m WHERE m.receiver.id = :userId AND m.isRead = false AND m.sender.id != :userId " +
            "ORDER BY m.createdAt DESC")
     List<Message> findUnreadMessagesForUser(Long userId);
     

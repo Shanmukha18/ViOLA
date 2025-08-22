@@ -15,6 +15,8 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
     
     List<Ride> findByOwnerIdAndIsActiveTrueOrderByCreatedAtDesc(Long ownerId);
     
+    List<Ride> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
+    
     @Query("SELECT r FROM Ride r WHERE r.isActive = true AND r.rideTime >= :now ORDER BY r.rideTime ASC")
     List<Ride> findUpcomingRides(LocalDateTime now);
     

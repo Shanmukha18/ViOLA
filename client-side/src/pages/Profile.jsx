@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Mail, Calendar, Shield, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle } from 'lucide-react';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -16,7 +16,7 @@ const Profile = () => {
     queryKey: ['my-rides'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-             const response = await fetch('http://localhost:8081/api/rides/my-rides', {
+      const response = await fetch('http://localhost:8081/api/rides/my-rides', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -57,6 +57,33 @@ const Profile = () => {
     },
   });
 
+  const resolveRideMutation = useMutation({
+    mutationFn: async (rideId) => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8081/api/rides/${rideId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to resolve ride');
+      }
+
+      // Don't try to parse JSON for empty response
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-rides']);
+      queryClient.invalidateQueries(['rides']); // Also refresh home page rides
+    },
+    onError: (error) => {
+      alert(`Error resolving ride: ${error.message}`);
+    },
+  });
+
   const handleEdit = () => {
     setEditForm({
       name: user?.name || '',
@@ -83,6 +110,12 @@ const Profile = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleResolveRide = (rideId) => {
+    if (window.confirm('Are you sure you want to mark this ride as resolved? This action cannot be undone.')) {
+      resolveRideMutation.mutate(rideId);
+    }
   };
 
   if (!user) {
@@ -229,31 +262,77 @@ const Profile = () => {
             </a>
           </div>
         ) : (
-          <div className="space-y-4">
-            {myRides?.map((ride) => (
-              <div key={ride.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-gray-900">
-                      {ride.pickup} → {ride.destination}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {new Date(ride.rideTime).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Price: ₹{ride.price} {ride.negotiable && '(Negotiable)'}
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    ride.isActive 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {ride.isActive ? 'Active' : 'Inactive'}
-                  </span>
+          <div className="space-y-6">
+            {/* Active Rides */}
+            {myRides?.filter(ride => ride.isActive).length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Active Rides</h3>
+                <div className="space-y-4">
+                  {myRides?.filter(ride => ride.isActive).map((ride) => (
+                    <div key={ride.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">
+                            {ride.pickup} → {ride.destination}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {new Date(ride.rideTime).toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Price: ₹{ride.price} {ride.negotiable && '(Negotiable)'}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                            Active
+                          </span>
+                          <button
+                            onClick={() => handleResolveRide(ride.id)}
+                            disabled={resolveRideMutation.isPending}
+                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            title="Mark as Resolved"
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            <span>Resolve</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Resolved Rides */}
+            {myRides?.filter(ride => !ride.isActive).length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Resolved Rides</h3>
+                <div className="space-y-4">
+                  {myRides?.filter(ride => !ride.isActive).map((ride) => (
+                    <div key={ride.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-700">
+                            {ride.pickup} → {ride.destination}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(ride.rideTime).toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Price: ₹{ride.price} {ride.negotiable && '(Negotiable)'}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                            Resolved
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
