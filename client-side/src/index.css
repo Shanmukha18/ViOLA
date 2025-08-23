@@ -14,7 +14,8 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--color-light-seafoam) 0%, #f8fbfa 100%);
+  margin: 0;
+  padding: 0;
 }
 
 /* Smooth scrolling */

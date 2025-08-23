@@ -5,12 +5,13 @@ import { AuthProvider } from './contexts/AuthContext';
 import { UnreadProvider } from './contexts/UnreadContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import NotificationContainer from './components/NotificationContainer';
 import Home from './pages/Home';
 import CreateRide from './pages/CreateRide';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
-import CustomerSupport from './pages/CustomerSupport';
+
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -32,9 +33,9 @@ function App() {
           <UnreadProvider>
             <NotificationProvider>
               <NotificationContainer />
-              <div className="min-h-screen bg-gray-50">
+              <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#2C3333] via-[#395B64] to-[#A5C9CA]">
                 <Navbar />
-                <main className="container mx-auto px-4 py-8">
+                <main className="flex-1">
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
@@ -62,9 +63,10 @@ function App() {
                         </ProtectedRoute>
                       } 
                     />
-                    <Route path="/support" element={<CustomerSupport />} />
+
                   </Routes>
                 </main>
+                <Footer />
               </div>
             </NotificationProvider>
           </UnreadProvider>

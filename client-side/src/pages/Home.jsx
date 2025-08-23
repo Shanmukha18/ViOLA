@@ -65,16 +65,17 @@ const Home = () => {
         const matchesDestination = filterDestination && 
           ride.destination.toLowerCase().includes(filterDestination.toLowerCase());
         
-        // Gender filter is optional (defaults to ANYONE)
+        // Gender filter - apply if not "ANYONE"
         const matchesGender = filterGender === 'ANYONE' || 
           ride.genderPreference === filterGender;
         
-        // Date filter is optional - only apply if a date is selected
+        // Date filter - apply if a date is provided
         const matchesDate = !filterDate || ride.rideDate === filterDate;
 
-        // Only show rides that match pickup AND destination (required)
-        // AND gender preference (optional)
-        // AND date if specified (optional)
+        // Show rides that match:
+        // 1. Pickup AND destination (required)
+        // 2. Gender preference (if specified, not "ANYONE")
+        // 3. Date (if specified)
         return matchesPickup && matchesDestination && matchesGender && matchesDate;
       });
 
@@ -96,17 +97,17 @@ const Home = () => {
   }, [rides, hasSearched, isSearching]);
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Find Your Perfect{' '}
-            <span className="gradient-primary bg-clip-text text-transparent bg-gradient-to-r from-[#395B64] to-[#2C3333]">
+            <span className="bg-gradient-to-r from-[#A5C9CA] via-[#E7F6F2] to-[#A5C9CA] bg-clip-text text-transparent font-extrabold">
               Ride Share
             </span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-[#E7F6F2] max-w-2xl mx-auto">
             Connect with fellow students for safe and convenient ride sharing. 
             Search for rides or create your own journey.
           </p>
@@ -172,8 +173,8 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Search Button */}
-          <div className="text-center">
+          {/* Search Buttons */}
+          <div className="text-center space-x-4">
             <button
               onClick={handleSearch}
               disabled={isSearching}
@@ -191,24 +192,28 @@ const Home = () => {
                 </div>
               )}
             </button>
+            
+            {hasSearched && (
+              <button
+                onClick={() => {
+                  setFilterPickup('');
+                  setFilterDestination('');
+                  setFilterGender('ANYONE');
+                  setFilterDate('');
+                  setHasSearched(false);
+                  setFilteredRides([]);
+                }}
+                className="px-6 py-3 border border-[#395B64] text-[#395B64] rounded-lg font-medium text-lg hover:bg-[#395B64] hover:text-white transition-all duration-300 cursor-pointer"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
 
         {/* Rides Section */}
         <div className="space-y-6">
-          {!hasSearched ? (
-            <div className="text-center py-12">
-              <div className="gradient-card rounded-2xl p-12 max-w-md mx-auto">
-                <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  Start Your Search
-                </h3>
-                <p className="text-gray-500">
-                  Enter your pickup and destination locations above to find available rides.
-                </p>
-              </div>
-            </div>
-          ) : filteredRides.length > 0 ? (
+          {hasSearched && filteredRides.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredRides.map((ride, index) => (
                 <div key={ride.id} className="card-animate" style={{ animationDelay: `${index * 0.1}s` }}>
@@ -216,28 +221,18 @@ const Home = () => {
                 </div>
               ))}
             </div>
-          ) : (
+          )}
+          
+          {hasSearched && filteredRides.length === 0 && (
             <div className="text-center py-12">
               <div className="gradient-card rounded-2xl p-12 max-w-md mx-auto">
                 <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                   No Rides Found
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-gray-500">
                   No rides match your search criteria. Try adjusting your filters or create a new ride.
                 </p>
-                <button
-                  onClick={() => {
-                    setFilterPickup('');
-                    setFilterDestination('');
-                    setFilterGender('ANYONE');
-                    setFilterDate('');
-                    setHasSearched(false);
-                  }}
-                  className="btn-primary text-white px-6 py-2 rounded-lg font-medium cursor-pointer"
-                >
-                  Clear Search
-                </button>
               </div>
             </div>
           )}

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnread } from '../contexts/UnreadContext';
-import { Home, Plus, MessageCircle, User, Phone, Car } from 'lucide-react';
+import { Home, Plus, MessageCircle, User, Car } from 'lucide-react';
 
 const Navbar = () => {
   const { user, isAuthenticated } = useAuth();
@@ -17,7 +17,7 @@ const Navbar = () => {
 
   if (!isAuthenticated) {
     return (
-      <nav className="gradient-primary shadow-lg">
+      <nav className="bg-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -41,7 +41,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="gradient-primary shadow-lg">
+    <nav className="bg-transparent">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
@@ -103,17 +103,7 @@ const Navbar = () => {
               <span>Profile</span>
             </Link>
             
-            <Link
-              to="/support"
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 relative ${
-                isActive('/support') 
-                  ? 'text-white font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-[#A5C9CA] after:to-[#E7F6F2] after:rounded-full' 
-                  : 'text-white hover:font-semibold hover:scale-105'
-              }`}
-            >
-              <Phone className="h-4 w-4 mr-1 text-white transition-all duration-300" />
-              <span>Support</span>
-            </Link>
+
           </div>
         </div>
       </div>

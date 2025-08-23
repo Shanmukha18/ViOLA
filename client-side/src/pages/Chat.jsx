@@ -467,10 +467,11 @@ const Chat = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
       <style>{scrollbarStyles}</style>
       {/* Chat Header with Connection Status */}
-      <div className="mb-4 p-4 bg-white rounded-lg shadow-md">
+      <div className="mb-4 p-4 gradient-card rounded-lg shadow-md">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
           
@@ -505,7 +506,7 @@ const Chat = () => {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden h-[700px]">
+      <div className="gradient-card rounded-lg shadow-md overflow-hidden h-[700px]">
         <div 
           className="flex h-full"
           onWheel={(e) => {
@@ -513,8 +514,8 @@ const Chat = () => {
           }}
         >
           {/* Conversations List - Fixed width */}
-          <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col flex-shrink-0">
-            <div className="p-4 border-b border-gray-200 flex-shrink-0 bg-white">
+          <div className="w-80 border-r border-gray-200 bg-[#E7F6F2] flex flex-col flex-shrink-0">
+            <div className="p-4 border-b border-gray-200 flex-shrink-0 gradient-card">
               <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
             </div>
             <div 
@@ -689,7 +690,7 @@ const Chat = () => {
                 </div>
 
                 {/* Message Input - Fixed at bottom */}
-                <div className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
+                <div className="p-4 border-t border-gray-200 gradient-card flex-shrink-0">
                   <div className="flex space-x-2">
                     <input
                       type="text"
@@ -726,6 +727,7 @@ const Chat = () => {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
