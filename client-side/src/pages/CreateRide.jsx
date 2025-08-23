@@ -87,6 +87,16 @@ const CreateRide = () => {
       return;
     }
 
+    // Validate date - must be today or future date
+    const selectedDate = new Date(formData.rideDate + 'T00:00:00'); // Create date in local timezone
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    
+    if (selectedDate < today) {
+      showError('Ride date cannot be in the past. Please select today or a future date.');
+      return;
+    }
+
     // Validate price - must be a positive number starting with non-zero digit
     // This regex ensures: ^[1-9] (starts with 1-9) \d* (followed by any number of digits)
     if (!/^[1-9]\d*$/.test(formData.price)) {
@@ -112,7 +122,7 @@ const CreateRide = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto p-4">
       {/* Header */}
       <div className="flex items-center mb-6">
         <button
@@ -125,12 +135,12 @@ const CreateRide = () => {
       </div>
 
       {/* Form */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="gradient-card rounded-lg p-6 hover-lift">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Pickup Location */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="inline h-4 w-4 mr-1 text-blue-500" />
+              <MapPin className="inline h-4 w-4 mr-1 text-[#395B64]" />
               Pickup Location *
             </label>
             <input
@@ -139,7 +149,7 @@ const CreateRide = () => {
               value={formData.pickup}
               onChange={handleInputChange}
               placeholder="e.g., VIT Main Gate, Chennai Central"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
               required
             />
           </div>
@@ -147,7 +157,7 @@ const CreateRide = () => {
           {/* Destination */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="inline h-4 w-4 mr-1 text-blue-500" />
+              <MapPin className="inline h-4 w-4 mr-1 text-[#395B64]" />
               Destination *
             </label>
             <input
@@ -156,7 +166,7 @@ const CreateRide = () => {
               value={formData.destination}
               onChange={handleInputChange}
               placeholder="e.g., T Nagar, Marina Beach"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
               required
             />
           </div>
@@ -165,7 +175,7 @@ const CreateRide = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clock className="inline h-4 w-4 mr-1 text-blue-500" />
+                <Clock className="inline h-4 w-4 mr-1 text-[#395B64] cursor-pointer" />
                 Ride Date *
               </label>
               <input
@@ -173,13 +183,20 @@ const CreateRide = () => {
                 name="rideDate"
                 value={formData.rideDate}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min={(() => {
+                  const today = new Date();
+                  const year = today.getFullYear();
+                  const month = String(today.getMonth() + 1).padStart(2, '0');
+                  const day = String(today.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`;
+                })()}
+                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clock className="inline h-4 w-4 mr-1 text-blue-500" />
+                <Clock className="inline h-4 w-4 mr-1 text-[#395B64] cursor-pointer" />
                 Ride Time *
               </label>
               <div className="flex gap-2">
@@ -190,7 +207,7 @@ const CreateRide = () => {
                   onChange={handleInputChange}
                   min="01"
                   max="12"
-                  className="w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-focus w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
                   required
                 />
                 <span className="flex items-center text-gray-500">:</span>
@@ -201,14 +218,14 @@ const CreateRide = () => {
                   onChange={handleInputChange}
                   min="00"
                   max="59"
-                  className="w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-focus w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
                   required
                 />
                 <select
                   name="ridePeriod"
                   value={formData.ridePeriod}
                   onChange={handleInputChange}
-                  className="w-1/3 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-focus w-1/3 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
                   required
                 >
                   <option value="AM">AM</option>
@@ -221,7 +238,7 @@ const CreateRide = () => {
           {/* Price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="inline h-4 w-4 mr-1 text-green-500">₹</span>
+              <span className="inline h-4 w-4 mr-1 text-[#395B64]">₹</span>
               Price *
             </label>
             <input
@@ -230,7 +247,7 @@ const CreateRide = () => {
               value={formData.price}
               onChange={handleInputChange}
               placeholder="3000"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
               required
             />
           </div>
@@ -238,14 +255,14 @@ const CreateRide = () => {
           {/* Gender Preference */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Users className="inline h-4 w-4 mr-1 text-blue-500" />
+              <Users className="inline h-4 w-4 mr-1 text-[#395B64]" />
               Gender Preference *
             </label>
             <select
               name="genderPreference"
               value={formData.genderPreference}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
               required
             >
               <option value="ANYONE">Anyone</option>
@@ -261,7 +278,7 @@ const CreateRide = () => {
               name="negotiable"
               checked={formData.negotiable}
               onChange={handleInputChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-[#395B64] focus:ring-[#395B64] border-gray-300 rounded cursor-pointer"
             />
             <label className="ml-2 block text-sm text-gray-700">
               Price is negotiable
@@ -271,7 +288,7 @@ const CreateRide = () => {
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FileText className="inline h-4 w-4 mr-1 text-blue-500" />
+              <FileText className="inline h-4 w-4 mr-1 text-[#395B64]" />
               Description (Optional)
             </label>
             <textarea
@@ -280,7 +297,7 @@ const CreateRide = () => {
               onChange={handleInputChange}
               placeholder="Add any additional details about your ride..."
               rows="4"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
             />
           </div>
 
@@ -289,18 +306,18 @@ const CreateRide = () => {
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#395B64] transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createRideMutation.isPending}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="btn-primary text-white px-6 py-2 rounded-md text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center cursor-pointer"
             >
               {createRideMutation.isPending ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="loading-pulse rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Creating...
                 </>
               ) : (
@@ -315,9 +332,9 @@ const CreateRide = () => {
       </div>
 
       {/* Tips */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-blue-900 mb-2">Tips for a great ride post:</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+      <div className="mt-6 gradient-card rounded-lg p-4 hover-lift">
+        <h3 className="text-sm font-medium text-[#2C3333] mb-2">Tips for a great ride post:</h3>
+        <ul className="text-sm text-[#395B64] space-y-1">
           <li>• Be specific about pickup and drop locations</li>
           <li>• Set a reasonable price that others will find attractive</li>
           <li>• Add helpful details in the description</li>

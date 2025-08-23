@@ -1,480 +1,250 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, MapPin, Clock, User, MessageCircle, Users, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import RideCard from '../components/RideCard';
-import { capitalizeLocation } from '../utils/locationUtils';
+import { Search, MapPin, Calendar, Users } from 'lucide-react';
 
 const Home = () => {
-  const [filterPickup, setFilterPickup] = useState('');
-  const [filterDestination, setFilterDestination] = useState('');
-  const [filterGender, setFilterGender] = useState('ANYONE'); // Default to Anyone
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
+  const { user, token } = useAuth();
+  const { showError, showInfo, showSuccess } = useNotification();
+  const [rides, setRides] = useState([]);
+  const [filteredRides, setFilteredRides] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [shouldFetchRides, setShouldFetchRides] = useState(false);
-  const { isAuthenticated } = useAuth();
-  const { showInfo, showSuccess, showError, showWarning } = useNotification();
+  const lastNotificationRef = useRef('');
 
-  // Temporary test function for notifications
-  const testNotifications = () => {
-    showSuccess('Operation completed successfully!');
-    setTimeout(() => showInfo('Here is some helpful information.'), 1000);
-    setTimeout(() => showError('Something went wrong. Please try again.'), 2000);
-    setTimeout(() => showWarning('Please check your input and try again.'), 3000);
+  // Search filters
+  const [filterPickup, setFilterPickup] = useState('');
+  const [filterDestination, setFilterDestination] = useState('');
+  const [filterGender, setFilterGender] = useState('ANYONE');
+  const [filterDate, setFilterDate] = useState('');
+
+  // Auto-capitalize function
+  const capitalizeLocation = (text) => {
+    return text.replace(/[a-zA-Z]/g, (char) => char.toUpperCase());
   };
 
-  const { data: rides, isLoading, error } = useQuery({
-    queryKey: ['rides'],
-    queryFn: async () => {
-      const response = await fetch('http://localhost:8081/api/rides');
-      if (!response.ok) {
-        throw new Error('Failed to fetch rides');
-      }
-      return response.json();
-    },
-    enabled: shouldFetchRides, // Only fetch when search is performed
-  });
-  const handleSearch = () => {
-    // Validate that at least one search criteria is provided
-    if (!filterPickup && !filterDestination && filterGender === 'ANYONE' && filterDate === new Date().toISOString().split('T')[0]) {
-      showWarning('Please enter at least one search criteria (From, To, Gender, or Date)');
+  const handleSearch = async () => {
+    if (!filterPickup.trim() || !filterDestination.trim()) {
+      showError('Please enter both pickup and destination locations');
       return;
     }
-    
+
     setIsSearching(true);
-    setShouldFetchRides(true); // Trigger data fetch
+    setHasSearched(true);
+
+    try {
+      const response = await fetch('http://localhost:8081/api/rides', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRides(data);
+        setShouldFetchRides(false);
+      } else {
+        showError('Failed to fetch rides');
+      }
+    } catch (error) {
+      showError('Error fetching rides');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  // Effect to handle filtering when rides data becomes available
+  // Filter rides based on search criteria
   useEffect(() => {
-    if (rides && shouldFetchRides && isSearching) {
+    if (rides.length > 0 && hasSearched && !isSearching) {
       const filtered = rides.filter(ride => {
-        const matchesPickup = !filterPickup || ride.pickup.toLowerCase().includes(filterPickup.toLowerCase());
-        const matchesDestination = !filterDestination || ride.destination.toLowerCase().includes(filterDestination.toLowerCase());
+        // Require both pickup and destination to be provided
+        const matchesPickup = filterPickup && 
+          ride.pickup.toLowerCase().includes(filterPickup.toLowerCase());
+        const matchesDestination = filterDestination && 
+          ride.destination.toLowerCase().includes(filterDestination.toLowerCase());
         
-        // Gender filter - optional, defaults to ANYONE
-        const matchesGender = filterGender === 'ANYONE' || ride.genderPreference === filterGender;
+        // Gender filter is optional (defaults to ANYONE)
+        const matchesGender = filterGender === 'ANYONE' || 
+          ride.genderPreference === filterGender;
         
-        // Date filter - optional, defaults to today
-        const matchesDate = !filterDate || (() => {
-          // Now using rideDate field directly as string
-          return ride.rideDate === filterDate;
-        })();
-        
-        const matches = matchesPickup && matchesDestination && matchesGender && matchesDate;
-        
-        return matches;
+        // Date filter is optional - only apply if a date is selected
+        const matchesDate = !filterDate || ride.rideDate === filterDate;
+
+        // Only show rides that match pickup AND destination (required)
+        // AND gender preference (optional)
+        // AND date if specified (optional)
+        return matchesPickup && matchesDestination && matchesGender && matchesDate;
       });
+
+      setFilteredRides(filtered);
       
-      setSearchResults(filtered);
-      setHasSearched(true);
-      setIsSearching(false);
+      // Show notifications only after search is completed
+      const notificationKey = `${filtered.length}-${filterPickup}-${filterDestination}`;
       
-      // Show notification with search results
-      if (filtered.length === 0) {
-        showInfo('No rides found. Try adjusting your search criteria.');
-      } else {
-        showSuccess(`Found ${filtered.length} ride${filtered.length !== 1 ? 's' : ''}!`);
+      if (lastNotificationRef.current !== notificationKey) {
+        lastNotificationRef.current = notificationKey;
+        
+        if (filtered.length === 0) {
+          showInfo('No rides found matching your criteria');
+        } else if (filtered.length > 0) {
+          showSuccess(`Found ${filtered.length} ride(s)`);
+        }
       }
     }
-  }, [rides, shouldFetchRides, isSearching, showInfo, showSuccess]);
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
+  }, [rides, hasSearched, isSearching]);
 
-  // Auto-capitalize search inputs
-  const handlePickupChange = (e) => {
-    const value = e.target.value;
-    const capitalizedValue = capitalizeLocation(value);
-    setFilterPickup(capitalizedValue);
-  };
-
-  const handleDestinationChange = (e) => {
-    const value = e.target.value;
-    const capitalizedValue = capitalizeLocation(value);
-    setFilterDestination(capitalizedValue);
-  };
-  const clearSearch = () => {
-    setFilterPickup('');
-    setFilterDestination('');
-    setFilterGender('ANYONE');
-    setFilterDate(new Date().toISOString().split('T')[0]);
-    setSearchResults([]);
-    setHasSearched(false);
-    setShouldFetchRides(false); // Stop fetching data
-  };
-
-  // Only show search results, never show all rides
-  const displayRides = searchResults;
-  // Only show loading when actually searching
-  if (isSearching) {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Find Your Perfect Ride
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Connect with fellow VIT students for safe and affordable cab rides. 
-            Share rides, split costs, and make new friends along the way.
-          </p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Enter From */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                placeholder="Enter From"
-                value={filterPickup}
-                onChange={handlePickupChange}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Enter To */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                placeholder="Enter To"
-                value={filterDestination}
-                onChange={handleDestinationChange}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Gender Filter */}
-            <div className="relative">
-              <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <select
-                value={filterGender}
-                onChange={(e) => setFilterGender(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-              >
-                <option value="ANYONE">Anyone</option>
-                <option value="FEMALES_ONLY">Females Only</option>
-                <option value="MALES_ONLY">Males Only</option>
-              </select>
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Date Filter */}
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="date"
-                placeholder="Select Date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                onKeyPress={handleKeyPress}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          
-          {/* Search Button */}
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              Searching...
-            </button>
-          </div>
-        </div>
-
-        {/* Loading Message */}
-        <div className="text-center py-12 bg-white rounded-lg shadow-md">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Searching for rides...</h3>
-          <p className="text-gray-600">Please wait while we find matching rides for you.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Find Your Perfect Ride
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Connect with fellow VIT students for safe and affordable cab rides. 
-            Share rides, split costs, and make new friends along the way.
-          </p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Enter From */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                placeholder="Enter From"
-                value={filterPickup}
-                onChange={handlePickupChange}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Enter To */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                placeholder="Enter To"
-                value={filterDestination}
-                onChange={handleDestinationChange}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Gender Filter */}
-            <div className="relative">
-              <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <select
-                value={filterGender}
-                onChange={(e) => setFilterGender(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-              >
-                <option value="ANYONE">Anyone</option>
-                <option value="FEMALES_ONLY">Females Only</option>
-                <option value="MALES_ONLY">Males Only</option>
-              </select>
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Date Filter */}
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="date"
-                placeholder="Select Date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                onKeyPress={handleKeyPress}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          
-          {/* Search Button */}
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              <Search className="mr-2 h-5 w-5" />
-              Search Rides
-            </button>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        <div className="text-center py-8">
-          <p className="text-red-600">Error loading rides: {error.message}</p>
-          <button
-            onClick={() => {
-              setShouldFetchRides(false);
-              setHasSearched(false);
-              setSearchResults([]);
-            }}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Find Your Perfect Ride
-        </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Connect with fellow VIT students for safe and affordable cab rides.
-           Share rides, split costs, and make new friends along the way.
-        </p>
-        {/* Temporary test button */}
-        <button
-          onClick={testNotifications}
-          className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-        >
-          Test Notifications
-        </button>
-      </div>
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Enter From */}
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Enter From"
-              value={filterPickup}
-              onChange={handlePickupChange}
-              onKeyPress={handleKeyPress}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          {/* Enter To */}
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Enter To"
-              value={filterDestination}
-              onChange={handleDestinationChange}
-              onKeyPress={handleKeyPress}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          {/* Gender Filter */}
-          <div className="relative">
-            <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <select
-              value={filterGender}
-              onChange={(e) => setFilterGender(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="ANYONE">Anyone</option>
-              <option value="FEMALES_ONLY">Females Only</option>
-              <option value="MALES_ONLY">Males Only</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+            Find Your Perfect{' '}
+            <span className="gradient-primary bg-clip-text text-transparent bg-gradient-to-r from-[#395B64] to-[#2C3333]">
+              Ride Share
+            </span>
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Connect with fellow students for safe and convenient ride sharing. 
+            Search for rides or create your own journey.
+          </p>
+        </div>
+
+        {/* Search Section */}
+        <div className="gradient-card rounded-2xl p-8 mb-8 hover-lift">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* From Location */}
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="From"
+                value={filterPickup}
+                onChange={(e) => setFilterPickup(capitalizeLocation(e.target.value))}
+                className="input-focus w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#395B64] bg-white"
+              />
+            </div>
+
+            {/* To Location */}
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="To"
+                value={filterDestination}
+                onChange={(e) => setFilterDestination(capitalizeLocation(e.target.value))}
+                className="input-focus w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#395B64] bg-white"
+              />
+            </div>
+
+            {/* Gender Filter */}
+            <div className="relative">
+              <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <select
+                value={filterGender}
+                onChange={(e) => setFilterGender(e.target.value)}
+                className="input-focus w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#395B64] bg-white appearance-none cursor-pointer"
+              >
+                <option value="ANYONE">Anyone</option>
+                <option value="ONLY_FEMALES">Only Females</option>
+                <option value="ONLY_MALES">Only Males</option>
+              </select>
+            </div>
+
+            {/* Date Filter */}
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 cursor-pointer" />
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                min={(() => {
+                  const today = new Date();
+                  const year = today.getFullYear();
+                  const month = String(today.getMonth() + 1).padStart(2, '0');
+                  const day = String(today.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`;
+                })()}
+                className="input-focus w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#395B64] bg-white cursor-pointer"
+              />
             </div>
           </div>
-          {/* Date Filter */}
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="date"
-              placeholder="Select Date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              onKeyPress={handleKeyPress}
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-                {/* Search Button */}
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            {isSearching ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Searching...
-              </>
-            ) : (
-              <>
-                <Search className="mr-2 h-5 w-5" />
-                Search Rides
-              </>
-            )}
-          </button>
-        </div>
-        {/* Search Status */}
-        {hasSearched && (
-          <div className="mt-2 text-center text-sm text-gray-600">
-            Found {searchResults.length} ride{searchResults.length !== 1 ? 's' : ''} matching your criteria
-          </div>
-        )}
-        {/* Clear Filters Button */}
-        {(hasSearched || filterPickup || filterDestination || filterGender !== 'ANYONE' || filterDate !== new Date().toISOString().split('T')[0]) && (
-          <div className="mt-4 flex justify-center">
+
+          {/* Search Button */}
+          <div className="text-center">
             <button
-              onClick={clearSearch}
-              className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="btn-primary text-white px-8 py-3 rounded-lg font-medium text-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              Clear All Filters
+              {isSearching ? (
+                <div className="flex items-center justify-center">
+                  <div className="loading-pulse w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Searching...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <Search className="h-5 w-5 mr-2" />
+                  Search Rides
+                </div>
+              )}
             </button>
           </div>
-        )}
-      </div>
-      {/* Rides Grid */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Available Rides ({displayRides.length})
-          </h2>
-          {isAuthenticated && (
-            <a
-              href="/create-ride"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Post a Ride
-            </a>
+        </div>
+
+        {/* Rides Section */}
+        <div className="space-y-6">
+          {!hasSearched ? (
+            <div className="text-center py-12">
+              <div className="gradient-card rounded-2xl p-12 max-w-md mx-auto">
+                <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  Start Your Search
+                </h3>
+                <p className="text-gray-500">
+                  Enter your pickup and destination locations above to find available rides.
+                </p>
+              </div>
+            </div>
+          ) : filteredRides.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredRides.map((ride, index) => (
+                <div key={ride.id} className="card-animate" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <RideCard ride={ride} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="gradient-card rounded-2xl p-12 max-w-md mx-auto">
+                <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Rides Found
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  No rides match your search criteria. Try adjusting your filters or create a new ride.
+                </p>
+                <button
+                  onClick={() => {
+                    setFilterPickup('');
+                    setFilterDestination('');
+                    setFilterGender('ANYONE');
+                    setFilterDate('');
+                    setHasSearched(false);
+                  }}
+                  className="btn-primary text-white px-6 py-2 rounded-lg font-medium cursor-pointer"
+                >
+                  Clear Search
+                </button>
+              </div>
+            </div>
           )}
         </div>
-        {displayRides.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow-md">
-            <MapPin className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {hasSearched ? 'No rides found' : 'Search for rides'}
-            </h3>
-            <p className="text-gray-600">
-              {hasSearched
-                ? 'Try adjusting your search criteria and search again'
-                : 'Enter your pickup and destination locations to find available rides'
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayRides.map((ride) => (
-              <RideCard key={ride.id} ride={ride} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
 };
+
 export default Home;

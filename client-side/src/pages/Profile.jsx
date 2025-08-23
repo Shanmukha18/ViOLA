@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle, Trash2 } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle, Trash2, LogOut } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
 
 const Profile = () => {
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const { showSuccess, showError } = useNotification();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
@@ -15,6 +15,7 @@ const Profile = () => {
   });
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [rideToAction, setRideToAction] = useState(null);
 
   // Price formatting function
@@ -202,6 +203,19 @@ const Profile = () => {
     setRideToAction(null);
   };
 
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    setShowLogoutConfirm(false);
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
+
   if (!user) {
     return (
       <div className="text-center py-8">
@@ -216,15 +230,24 @@ const Profile = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          {!isEditing && (
-            <button
+          <div className="flex items-center space-x-3">
+            {!isEditing && (
+                          <button
               onClick={handleEdit}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors cursor-pointer"
             >
-              <Edit className="h-4 w-4" />
-              <span>Edit Profile</span>
+                <Edit className="h-4 w-4" />
+                <span>Edit Profile</span>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
             </button>
-          )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -234,11 +257,11 @@ const Profile = () => {
               <img
                 src={user.photoUrl}
                 alt={user.name}
-                className="h-32 w-32 rounded-full mx-auto mb-4 border-4 border-blue-100"
+                className="h-32 w-32 rounded-full mx-auto mb-4 border-4 border-[#A5C9CA]"
               />
             ) : (
-              <div className="h-32 w-32 rounded-full mx-auto mb-4 bg-blue-100 flex items-center justify-center border-4 border-blue-100">
-                <User className="h-16 w-16 text-blue-600" />
+              <div className="h-32 w-32 rounded-full mx-auto mb-4 bg-[#E7F6F2] flex items-center justify-center border-4 border-[#A5C9CA]">
+                <User className="h-16 w-16 text-[#395B64]" />
               </div>
             )}
             <div className="flex items-center justify-center space-x-2">
@@ -262,7 +285,7 @@ const Profile = () => {
                     name="name"
                     value={editForm.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -282,14 +305,14 @@ const Profile = () => {
                   <button
                     onClick={handleSave}
                     disabled={updateProfileMutation.isPending}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                    className="flex items-center space-x-2 px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Save className="h-4 w-4" />
                     <span>Save</span>
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 bg-[#A5C9CA] text-[#2C3333] rounded-md hover:bg-[#395B64] hover:text-white transition-colors cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                     <span>Cancel</span>
@@ -299,21 +322,21 @@ const Profile = () => {
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
-                  <User className="h-5 w-5 text-blue-500" />
+                  <User className="h-5 w-5 text-[#395B64]" />
                   <div>
                     <p className="text-sm text-gray-500">Name</p>
                     <p className="text-lg font-medium text-gray-900">{user.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <Mail className="h-5 w-5 text-blue-500" />
+                  <Mail className="h-5 w-5 text-[#395B64]" />
                   <div>
                     <p className="text-sm text-gray-500">Email</p>
                     <p className="text-lg font-medium text-gray-900">{user.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <Calendar className="h-5 w-5 text-blue-500" />
+                  <Calendar className="h-5 w-5 text-[#395B64]" />
                   <div>
                     <p className="text-sm text-gray-500">Member Since</p>
                     <p className="text-lg font-medium text-gray-900">
@@ -333,14 +356,14 @@ const Profile = () => {
         
         {ridesLoading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#395B64] mx-auto"></div>
           </div>
         ) : myRides?.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-600">You haven't posted any rides yet.</p>
             <a
               href="/create-ride"
-              className="inline-block mt-2 text-blue-600 hover:text-blue-700 font-medium"
+              className="inline-block mt-2 text-[#395B64] hover:text-[#2C3333] font-medium"
             >
               Post your first ride →
             </a>
@@ -377,7 +400,7 @@ const Profile = () => {
                           <button
                             onClick={() => handleResolveRide(ride.id)}
                             disabled={resolveRideMutation.isPending}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 cursor-pointer"
                             title="Mark as Resolved"
                           >
                             <CheckCircle className="h-3 w-3" />
@@ -421,7 +444,7 @@ const Profile = () => {
                           <button
                             onClick={() => handleDeleteRide(ride.id)}
                             disabled={deleteRideMutation.isPending}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
                             title="Delete Permanently"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -449,14 +472,14 @@ const Profile = () => {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={cancelResolveRide}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-[#2C3333] bg-[#A5C9CA] rounded-md hover:bg-[#395B64] hover:text-white transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmResolveRide}
                 disabled={resolveRideMutation.isPending}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {resolveRideMutation.isPending ? 'Resolving...' : 'Resolve'}
               </button>
@@ -481,16 +504,42 @@ const Profile = () => {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={cancelDeleteRide}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-[#2C3333] bg-[#A5C9CA] rounded-md hover:bg-[#395B64] hover:text-white transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteRide}
                 disabled={deleteRideMutation.isPending}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {deleteRideMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Dialog */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to logout? You will need to sign in again to access your account.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelLogout}
+                className="px-4 py-2 text-[#2C3333] bg-[#A5C9CA] rounded-md hover:bg-[#395B64] hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors cursor-pointer"
+              >
+                Logout
               </button>
             </div>
           </div>

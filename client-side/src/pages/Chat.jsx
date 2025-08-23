@@ -469,54 +469,54 @@ const Chat = () => {
   return (
     <div className="max-w-6xl mx-auto">
       <style>{scrollbarStyles}</style>
-             {/* Chat Header with Connection Status */}
-       <div className="mb-4 p-4 bg-white rounded-lg shadow-md">
-         <div className="flex items-center justify-between">
-           <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
-           
-           {/* Connection Status Indicator */}
-           <div className="flex items-center space-x-2">
-             {isConnecting && (
-               <div className="flex items-center space-x-1 text-yellow-600">
-                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>
-                 <span className="text-xs">Connecting...</span>
-               </div>
-             )}
-             {isConnected && (
-               <div className="flex items-center space-x-1 text-green-600">
-                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                 <span className="text-xs">Connected</span>
-               </div>
-             )}
-             {!isConnected && !isConnecting && (
-               <div className="flex items-center space-x-1 text-red-600">
-                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                 <span className="text-xs">Reconnecting...</span>
-               </div>
-             )}
-           </div>
-         </div>
-         
-         {connectionError && (
-           <div className="mt-2 flex items-center space-x-2 text-red-600">
-             <AlertCircle className="h-4 w-4" />
-             <span className="text-sm">Connection lost. Reconnecting automatically...</span>
-           </div>
-         )}
-       </div>
+      {/* Chat Header with Connection Status */}
+      <div className="mb-4 p-4 bg-white rounded-lg shadow-md">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+          
+          {/* Connection Status Indicator */}
+          <div className="flex items-center space-x-2">
+            {isConnecting && (
+              <div className="flex items-center space-x-1 text-yellow-600">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>
+                <span className="text-xs">Connecting...</span>
+              </div>
+            )}
+            {isConnected && (
+              <div className="flex items-center space-x-1 text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs">Connected</span>
+              </div>
+            )}
+            {!isConnected && !isConnecting && (
+              <div className="flex items-center space-x-1 text-red-600">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-xs">Reconnecting...</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {connectionError && (
+          <div className="mt-2 flex items-center space-x-2 text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm">Connection lost. Reconnecting automatically...</span>
+          </div>
+        )}
+      </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden h-[700px]">
         <div 
-          className="grid grid-cols-1 md:grid-cols-3 h-full"
+          className="flex h-full"
           onWheel={(e) => {
             e.stopPropagation();
           }}
         >
-          {/* Conversations List */}
-          <div className="border-r border-gray-200 bg-gray-50 flex flex-col">
-                         <div className="p-4 border-b border-gray-200 flex-shrink-0 bg-white">
-               <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
-             </div>
+          {/* Conversations List - Fixed width */}
+          <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col flex-shrink-0">
+            <div className="p-4 border-b border-gray-200 flex-shrink-0 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
+            </div>
             <div 
               className="flex-1 overflow-y-auto custom-scrollbar force-scrollbar"
               onWheel={(e) => {
@@ -524,7 +524,7 @@ const Chat = () => {
               }}
             >
               {conversations.length > 0 ? (
-                                                 conversations.map((conversation) => {
+                conversations.map((conversation) => {
                   const isUnread = conversation.hasUnreadMessages;
                   return (
                     <div
@@ -532,34 +532,33 @@ const Chat = () => {
                       onClick={() => handleConversationSelect(conversation)}
                       className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
                         selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
-                      } ${isUnread ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
+                                                 } ${isUnread ? 'bg-[#E7F6F2] border-l-4 border-l-[#395B64]' : ''}`}
                     >
-                    <div className="flex items-start space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                                                                         <div className="flex items-center justify-between">
-                          <h3 className={`text-sm font-medium truncate ${
-                            isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
-                          }`}>
-                            {conversation.user.name}
-                          </h3>
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            {formatTime(conversation.lastMessageTime)}
-                          </span>
+                      <div className="flex items-start space-x-3">
+                        <div className="h-10 w-10 rounded-full bg-[#E7F6F2] flex items-center justify-center flex-shrink-0">
+                          <User className="h-5 w-5 text-[#395B64]" />
                         </div>
-                         {conversation.isOwner && (
-                           <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-1">
-                             Your Ride
-                           </span>
-                         )}
-                                                 
-                       </div>
-                     </div>
-                   </div>
-                 );
-               })
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h3 className={`text-sm font-medium truncate ${
+                              isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
+                            }`}>
+                              {conversation.user.name}
+                            </h3>
+                            <span className="text-xs text-gray-500 flex-shrink-0">
+                              {formatTime(conversation.lastMessageTime)}
+                            </span>
+                          </div>
+                          {conversation.isOwner && (
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-1">
+                              Your Ride
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="p-4 text-center text-gray-500">
                   {isConnected ? (
@@ -580,52 +579,52 @@ const Chat = () => {
             </div>
           </div>
 
-                     {/* Chat Area */}
-           <div className="md:col-span-2 flex flex-col chat-container">
+          {/* Chat Area - Takes remaining space */}
+          <div className="flex-1 flex flex-col chat-container">
             {selectedConversation ? (
               <>
-                                 {/* Chat Header - Fixed at top */}
-                 <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
-                   <div className="flex items-center space-x-3">
-                     <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                       <User className="h-5 w-5 text-blue-600" />
-                     </div>
-                     <div className="flex-1">
-                       <h3 className="text-lg font-semibold text-gray-900">
-                         {selectedConversation.user.name}
-                       </h3>
-                       <p className="text-sm text-gray-500">
-                         {selectedConversation.ride.pickup} → {selectedConversation.ride.destination}
-                       </p>
-                     </div>
-                                           <div className="flex items-center space-x-2">
-                        {selectedConversation.isOwner && (
-                          <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
-                            Your Ride
-                          </span>
-                        )}
-                        <button
-                          onClick={scrollToBottomButton}
-                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                          title="Scroll to bottom"
-                        >
-                          ↓
-                        </button>
-                      </div>
-                   </div>
-                 </div>
+                {/* Chat Header - Fixed at top */}
+                <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-[#E7F6F2] flex items-center justify-center">
+                      <User className="h-5 w-5 text-[#395B64]" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {selectedConversation.user.name}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {selectedConversation.ride.pickup} → {selectedConversation.ride.destination}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {selectedConversation.isOwner && (
+                        <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+                          Your Ride
+                        </span>
+                      )}
+                      <button
+                        onClick={scrollToBottomButton}
+                        className="px-3 py-1 text-xs bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors cursor-pointer"
+                        title="Scroll to bottom"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-                                 {/* Messages - Scrollable area */}
-                 <div 
-                   className="flex-1 p-4 space-y-4 bg-gray-50 custom-scrollbar force-scrollbar chat-messages"
-                   onWheel={(e) => {
-                     e.stopPropagation();
-                   }}
-                 >
+                {/* Messages - Scrollable area */}
+                <div 
+                  className="flex-1 p-4 space-y-4 bg-gray-50 custom-scrollbar force-scrollbar chat-messages"
+                  onWheel={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
                   {isLoadingMessages ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#395B64] mx-auto mb-2"></div>
                         <p className="text-sm text-gray-500">Loading messages...</p>
                       </div>
                     </div>
@@ -663,12 +662,12 @@ const Chat = () => {
                           <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                               isOwnMessage 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-white text-gray-900 border border-gray-200'
+                                ? 'bg-[#395B64] text-white shadow-lg' 
+                                : 'bg-[#E7F6F2] text-[#2C3333] border border-[#A5C9CA]'
                             } ${message.isOptimistic ? 'opacity-70' : ''}`}>
                               <p className="text-sm">{message.content}</p>
                               <p className={`text-xs mt-1 ${
-                                isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                                isOwnMessage ? 'text-[#A5C9CA]' : 'text-[#395B64]'
                               }`}>
                                 {formatTime(message.createdAt || message.timestamp)}
                                 {message.isOptimistic && ' (sending...)'}
@@ -687,7 +686,6 @@ const Chat = () => {
                       </div>
                     </div>
                   )}
-                  
                 </div>
 
                 {/* Message Input - Fixed at bottom */}
@@ -700,13 +698,13 @@ const Chat = () => {
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                       placeholder={isConnected ? "Type your message..." : "Connect to chat..."}
                       disabled={!isConnected}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
-                    <button
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || !isConnected}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                                            <button
+                          onClick={handleSendMessage}
+                          disabled={!newMessage.trim() || !isConnected}
+                          className="px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
                       <Send className="h-4 w-4" />
                     </button>
                   </div>
