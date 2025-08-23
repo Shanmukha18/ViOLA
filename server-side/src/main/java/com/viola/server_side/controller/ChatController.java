@@ -52,30 +52,45 @@ public class ChatController {
         log.info("Message details - senderId: {}, rideId: {}, content: {}", 
                 chatMessage.getSenderId(), chatMessage.getRideId(), chatMessage.getContent());
         
-        // Save message to database
-        MessageDto savedMessage = chatService.saveMessage(chatMessage);
-        log.info("Message saved to database with ID: {}", savedMessage.getId());
-        
-        // Send to ride-specific chat if rideId is provided
-        if (chatMessage.getRideId() != null) {
-            String topic = "/topic/ride." + chatMessage.getRideId();
-            messagingTemplate.convertAndSend(topic, chatMessage);
-            log.info("Message sent to topic: {}", topic);
-        } else {
-            log.warn("No rideId provided for message, not sending to ride chat");
+        try {
+            // Save message to database
+            MessageDto savedMessage = chatService.saveMessage(chatMessage);
+            log.info("Message saved to database with ID: {}", savedMessage.getId());
+            
+            // Send to ride-specific chat if rideId is provided
+            if (chatMessage.getRideId() != null) {
+                String topic = "/topic/ride." + chatMessage.getRideId();
+                log.info("Broadcasting message to topic: {}", topic);
+                log.info("Message content: {}", chatMessage.getContent());
+                log.info("Message sender: {}", chatMessage.getSenderId());
+                log.info("Message receiver: {}", chatMessage.getReceiverId());
+                
+                try {
+                    messagingTemplate.convertAndSend(topic, chatMessage);
+                    log.info("Message successfully sent to topic: {}", topic);
+                } catch (Exception e) {
+                    log.error("Error broadcasting message to topic {}: {}", topic, e.getMessage(), e);
+                }
+            } else {
+                log.warn("No rideId provided for message, not sending to ride chat");
+            }
+            
+            // Send to specific user if it's a private message
+            if (chatMessage.getReceiverId() != null && !chatMessage.getReceiverId().isEmpty()) {
+                log.info("Sending private message to user: {}", chatMessage.getReceiverId());
+                messagingTemplate.convertAndSendToUser(
+                    chatMessage.getReceiverId(),
+                    "/queue/private",
+                    chatMessage
+                );
+                log.info("Private message sent to user: {}", chatMessage.getReceiverId());
+            }
+            
+            return chatMessage;
+        } catch (Exception e) {
+            log.error("Error processing message: {}", e.getMessage(), e);
+            throw e;
         }
-        
-        // Send to specific user if it's a private message
-        if (chatMessage.getReceiverId() != null && !chatMessage.getReceiverId().isEmpty()) {
-            messagingTemplate.convertAndSendToUser(
-                chatMessage.getReceiverId(),
-                "/queue/private",
-                chatMessage
-            );
-            log.info("Private message sent to user: {}", chatMessage.getReceiverId());
-        }
-        
-        return chatMessage;
     }
 
     @MessageMapping("/chat.addUser")
@@ -91,11 +106,14 @@ public class ChatController {
 
     @MessageMapping("/chat.joinRide")
     public void joinRideChat(@Payload ChatMessage chatMessage, Principal principal) {
+        log.info("Join ride chat request received: {}", chatMessage);
         if (principal != null) {
             String rideId = chatMessage.getRideId().toString();
             String userId = principal.getName();
             
             log.info("User {} joined ride chat {}", userId, rideId);
+        } else {
+            log.warn("No principal found for join ride chat request");
         }
     }
 
@@ -119,8 +137,39 @@ public class ChatController {
     // REST endpoints for chat history
     @GetMapping("/api/chat/ride/{rideId}")
     @ResponseBody
-    public List<MessageDto> getRideChatHistory(@PathVariable Long rideId) {
-        return chatService.getMessagesByRideId(rideId);
+    public List<MessageDto> getRideChatHistory(@PathVariable Long rideId, HttpServletRequest request) {
+        // Extract user ID from JWT token
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing JWT token");
+        }
+        
+        try {
+            String username = jwtUtil.extractUsername(token);
+            if (!jwtUtil.validateToken(token, username)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+            }
+            
+            Long userId = jwtUtil.extractUserId(token);
+            
+            // Get the ride to verify it exists
+            Ride ride = rideRepository.findById(rideId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ride not found"));
+            
+            // Get all messages for this ride that involve the current user
+            // (either sent by or received by the current user)
+            List<Message> messages = messageRepository.findMessagesByRideId(rideId);
+            List<Message> userMessages = messages.stream()
+                    .filter(msg -> msg.getSender().getId().equals(userId) || msg.getReceiver().getId().equals(userId))
+                    .collect(Collectors.toList());
+            
+            return userMessages.stream()
+                    .map(this::convertMessageToDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting chat history: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token");
+        }
     }
 
     @GetMapping("/api/chat/conversation/{userId}")
@@ -167,42 +216,42 @@ public class ChatController {
             // Find the most recent message sender (other than the ride owner) to show as conversation partner
             List<Message> rideMessages = messageRepository.findMessagesByRideId(ride.getId());
             User conversationPartner = null;
+            Message lastMessage = null;
             
             if (!rideMessages.isEmpty()) {
                 // Find the first message from someone other than the ride owner
                 for (Message msg : rideMessages) {
                     if (!msg.getSender().getId().equals(userId)) {
                         conversationPartner = msg.getSender();
+                        lastMessage = msg;
                         break;
                     }
                 }
             }
             
-            // If no conversation partner found, use a default or skip
-            if (conversationPartner == null) {
-                conversationPartner = ride.getOwner(); // Fallback to owner
+            // Only add conversation if there's actually a conversation partner (someone messaged about this ride)
+            if (conversationPartner != null && !conversationPartner.getId().equals(userId)) {
+                // Check if this conversation has unread messages
+                boolean hasUnreadMessages = unreadRideIds.contains(ride.getId());
+                
+                Map<String, Object> conv = new HashMap<>();
+                conv.put("id", ride.getId());
+                conv.put("ride", Map.of(
+                    "id", ride.getId(),
+                    "pickup", ride.getPickup(),
+                    "destination", ride.getDestination()
+                ));
+                conv.put("user", Map.of(
+                    "id", conversationPartner.getId(),
+                    "name", conversationPartner.getName(),
+                    "email", conversationPartner.getEmail()
+                ));
+                conv.put("lastMessage", lastMessage != null ? lastMessage.getContent() : (ride.getPickup() + " to " + ride.getDestination()));
+                conv.put("lastMessageTime", lastMessage != null ? lastMessage.getCreatedAt() : ride.getCreatedAt());
+                conv.put("hasUnreadMessages", hasUnreadMessages);
+                conv.put("isOwner", true);
+                conversations.add(conv);
             }
-            
-            // Check if this conversation has unread messages
-            boolean hasUnreadMessages = unreadRideIds.contains(ride.getId());
-            
-            Map<String, Object> conv = new HashMap<>();
-            conv.put("id", ride.getId());
-            conv.put("ride", Map.of(
-                "id", ride.getId(),
-                "pickup", ride.getPickup(),
-                "destination", ride.getDestination()
-            ));
-            conv.put("user", Map.of(
-                "id", conversationPartner.getId(),
-                "name", conversationPartner.getName(),
-                "email", conversationPartner.getEmail()
-            ));
-            conv.put("lastMessage", ride.getPickup() + " to " + ride.getDestination());
-            conv.put("lastMessageTime", ride.getCreatedAt());
-            conv.put("hasUnreadMessages", hasUnreadMessages);
-            conv.put("isOwner", true);
-            conversations.add(conv);
         }
         
         // Get rides where user participated in chats (but didn't create the ride)
@@ -217,26 +266,43 @@ public class ChatController {
         for (Long rideId : participatedRideIds) {
             Ride ride = rideRepository.findById(rideId).orElse(null);
             if (ride != null && ride.getIsActive()) {
-                // Check if this conversation has unread messages
-                boolean hasUnreadMessages = unreadRideIds.contains(rideId);
+                // Find the last message in this conversation
+                List<Message> rideMessages = messageRepository.findMessagesByRideId(rideId);
+                Message lastMessage = null;
                 
-                Map<String, Object> conv = new HashMap<>();
-                conv.put("id", ride.getId());
-                conv.put("ride", Map.of(
-                    "id", ride.getId(),
-                    "pickup", ride.getPickup(),
-                    "destination", ride.getDestination()
-                ));
-                conv.put("user", Map.of(
-                    "id", ride.getOwner().getId(),
-                    "name", ride.getOwner().getName(),
-                    "email", ride.getOwner().getEmail()
-                ));
-                conv.put("lastMessage", ride.getPickup() + " to " + ride.getDestination());
-                conv.put("lastMessageTime", ride.getCreatedAt());
-                conv.put("hasUnreadMessages", hasUnreadMessages);
-                conv.put("isOwner", false);
-                conversations.add(conv);
+                // Find the most recent message in this conversation
+                for (Message msg : rideMessages) {
+                    if ((msg.getSender().getId().equals(userId) && msg.getReceiver().getId().equals(ride.getOwner().getId())) ||
+                        (msg.getSender().getId().equals(ride.getOwner().getId()) && msg.getReceiver().getId().equals(userId))) {
+                        if (lastMessage == null || msg.getCreatedAt().isAfter(lastMessage.getCreatedAt())) {
+                            lastMessage = msg;
+                        }
+                    }
+                }
+                
+                // Only add if there's actually a conversation (not just a self-message)
+                if (lastMessage != null) {
+                    // Check if this conversation has unread messages
+                    boolean hasUnreadMessages = unreadRideIds.contains(rideId);
+                    
+                    Map<String, Object> conv = new HashMap<>();
+                    conv.put("id", ride.getId());
+                    conv.put("ride", Map.of(
+                        "id", ride.getId(),
+                        "pickup", ride.getPickup(),
+                        "destination", ride.getDestination()
+                    ));
+                    conv.put("user", Map.of(
+                        "id", ride.getOwner().getId(),
+                        "name", ride.getOwner().getName(),
+                        "email", ride.getOwner().getEmail()
+                    ));
+                    conv.put("lastMessage", lastMessage.getContent());
+                    conv.put("lastMessageTime", lastMessage.getCreatedAt());
+                    conv.put("hasUnreadMessages", hasUnreadMessages);
+                    conv.put("isOwner", false);
+                    conversations.add(conv);
+                }
             }
         }
         
@@ -314,5 +380,35 @@ public class ChatController {
             return bearerToken.substring(7);
         }
         throw new RuntimeException("No valid token found");
+    }
+    
+    private MessageDto convertMessageToDto(Message message) {
+        MessageDto dto = new MessageDto();
+        dto.setId(message.getId());
+        dto.setContent(message.getContent());
+        dto.setCreatedAt(message.getCreatedAt());
+        dto.setIsRead(message.getIsRead());
+        dto.setRideId(message.getRide() != null ? message.getRide().getId() : null);
+        
+        if (message.getSender() != null) {
+            dto.setSender(convertUserToDto(message.getSender()));
+        }
+        
+        if (message.getReceiver() != null) {
+            dto.setReceiver(convertUserToDto(message.getReceiver()));
+        }
+        
+        return dto;
+    }
+    
+    private com.viola.server_side.dto.UserDto convertUserToDto(User user) {
+        com.viola.server_side.dto.UserDto dto = new com.viola.server_side.dto.UserDto();
+        dto.setId(user.getId());
+        dto.setEmail(user.getEmail());
+        dto.setName(user.getName());
+        dto.setPhotoUrl(user.getPhotoUrl());
+        dto.setIsVerified(user.getIsVerified());
+        dto.setCreatedAt(user.getCreatedAt());
+        return dto;
     }
 }

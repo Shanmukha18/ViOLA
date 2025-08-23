@@ -55,6 +55,19 @@ const Chat = () => {
   // Generate a unique session ID for this browser instance
   const sessionId = useRef(Math.random().toString(36).substr(2, 9)).current;
 
+  // Utility function to normalize timestamps
+  const normalizeTimestamp = (date) => {
+    if (!date) return new Date();
+    
+    try {
+      // Handle both ISO string and Date object
+      return typeof date === 'string' ? new Date(date) : date;
+    } catch (error) {
+      console.error('Error normalizing timestamp:', error);
+      return new Date();
+    }
+  };
+
   // WebSocket connection management
   useEffect(() => {
     if (token && user) {
@@ -112,24 +125,74 @@ const Chat = () => {
   // Handle ride context from navigation
   useEffect(() => {
     if (location.state?.rideId && location.state?.rideOwner) {
-      // Create a conversation for this ride
-      const rideConversation = {
-        id: Date.now(),
-        user: location.state.rideOwner,
-        ride: {
-          id: location.state.rideId,
-          pickup: 'From Ride Card', // You can enhance this
-          destination: 'To Ride Card'
-        },
-        lastMessage: 'Start chatting about this ride!',
-        lastMessageTime: new Date(),
-        unreadCount: 0
+      // Fetch the actual ride details to get pickup and destination
+      const fetchRideDetails = async () => {
+        try {
+          const response = await fetch(`http://localhost:8081/api/rides/${location.state.rideId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const rideData = await response.json();
+            
+            // Check if ride is active
+            if (!rideData.isActive) {
+              console.error('Ride is not active');
+              createFallbackConversation('Ride not available');
+              return;
+            }
+            
+            // Create a conversation for this ride with actual details
+            const rideConversation = {
+              id: Date.now(),
+              user: location.state.rideOwner,
+              ride: {
+                id: location.state.rideId,
+                pickup: rideData.pickup,
+                destination: rideData.destination
+              },
+              lastMessage: 'Start chatting about this ride!',
+              lastMessageTime: new Date(),
+              unreadCount: 0
+            };
+            
+            setConversations([rideConversation]);
+            setSelectedConversation(rideConversation);
+          } else {
+            console.error('Failed to fetch ride details');
+            // Fallback to placeholder if API fails
+            createFallbackConversation('Ride not found');
+          }
+        } catch (error) {
+          console.error('Error fetching ride details:', error);
+          // Fallback to placeholder if API fails
+          createFallbackConversation('Error loading ride');
+        }
       };
       
-      setConversations([rideConversation]);
-      setSelectedConversation(rideConversation);
+      const createFallbackConversation = (errorMessage = 'Loading...') => {
+        const rideConversation = {
+          id: Date.now(),
+          user: location.state.rideOwner,
+          ride: {
+            id: location.state.rideId,
+            pickup: errorMessage,
+            destination: errorMessage
+          },
+          lastMessage: 'Start chatting about this ride!',
+          lastMessageTime: new Date(),
+          unreadCount: 0
+        };
+        
+        setConversations([rideConversation]);
+        setSelectedConversation(rideConversation);
+      };
+      
+      fetchRideDetails();
     }
-  }, [location.state]);
+  }, [location.state, token]);
 
   // Load conversations from API (you'll need to implement this endpoint)
   useEffect(() => {
@@ -179,6 +242,7 @@ const Chat = () => {
   const loadMessages = async (rideId) => {
     setIsLoadingMessages(true);
     try {
+      console.log(`[Session ${sessionId}] Loading messages for ride ${rideId}`);
       const response = await fetch(`http://localhost:8081/api/chat/ride/${rideId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -187,10 +251,13 @@ const Chat = () => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log(`[Session ${sessionId}] Loaded ${data.length} messages from API:`, data);
         setMessages(data);
+      } else {
+        console.error(`[Session ${sessionId}] Failed to load messages:`, response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Failed to load messages:', error);
+      console.error(`[Session ${sessionId}] Failed to load messages:`, error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -233,21 +300,24 @@ const Chat = () => {
       const messageExists = filteredMessages.some(msg => {
         // If both messages have IDs, compare by ID
         if (msg.id && message.id && msg.id === message.id) {
+          console.log(`[Session ${sessionId}] Message exists by ID: ${msg.id}`);
           return true;
         }
         
-        // If both messages have the same content, sender, and timestamp (within 5 seconds), consider it a duplicate
+        // If both messages have the same content, sender, and timestamp (within 2 seconds), consider it a duplicate
         const contentMatch = msg.content === message.content;
         const senderMatch = (msg.senderId === message.senderId) || 
                            (msg.sender && msg.sender.id && msg.sender.id.toString() === message.senderId);
         
         if (contentMatch && senderMatch) {
-          const msgTime = new Date(msg.timestamp || msg.createdAt).getTime();
-          const newMsgTime = new Date(message.timestamp).getTime();
+          // Get timestamp from either createdAt or timestamp field
+          const msgTime = new Date(msg.createdAt || msg.timestamp || Date.now()).getTime();
+          const newMsgTime = new Date(message.createdAt || message.timestamp || Date.now()).getTime();
           const timeDiff = Math.abs(msgTime - newMsgTime);
           
-          // If messages are within 5 seconds of each other, consider it a duplicate
-          if (timeDiff < 5000) {
+          // If messages are within 2 seconds of each other, consider it a duplicate
+          if (timeDiff < 2000) {
+            console.log(`[Session ${sessionId}] Message exists by content/sender/time: content="${msg.content}", sender="${msg.senderId}", timeDiff=${timeDiff}ms`);
             return true;
           }
         }
@@ -256,10 +326,12 @@ const Chat = () => {
       });
       
       if (!messageExists) {
-        // Add the new message
+        // Add the new message with consistent timestamp handling
         const newMessage = {
           ...message,
-          timestamp: new Date(message.timestamp || Date.now())
+          // Use createdAt if available (from API), otherwise use timestamp (from WebSocket)
+          timestamp: message.createdAt || message.timestamp || new Date(),
+          createdAt: message.createdAt || message.timestamp || new Date()
         };
         console.log(`[Session ${sessionId}] Adding new message to UI:`, newMessage);
         return [...filteredMessages, newMessage];
@@ -273,7 +345,11 @@ const Chat = () => {
     if (selectedConversation && message.rideId === selectedConversation.ride.id) {
       setConversations(prev => prev.map(conv => 
         conv.ride.id === message.rideId 
-          ? { ...conv, lastMessage: message.content, lastMessageTime: new Date(message.timestamp || Date.now()) }
+          ? { 
+              ...conv, 
+              lastMessage: message.content, 
+              lastMessageTime: message.createdAt || message.timestamp || new Date() 
+            }
           : conv
       ));
     }
@@ -325,6 +401,12 @@ const Chat = () => {
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation || !isConnected) return;
 
+    // Prevent self-chatting
+    if (user.id === selectedConversation.user.id) {
+      alert('You cannot send messages to yourself.');
+      return;
+    }
+
     const messageContent = newMessage.trim();
     setNewMessage('');
 
@@ -342,19 +424,43 @@ const Chat = () => {
   };
 
   const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (!date) return '';
+    
+    try {
+      const dateObj = normalizeTimestamp(date);
+      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
   };
 
   const formatDate = (date) => {
-    const today = new Date();
-    const messageDate = new Date(date);
+    if (!date) return '';
     
-    if (today.toDateString() === messageDate.toDateString()) {
-      return 'Today';
-    } else if (today.getDate() - messageDate.getDate() === 1) {
-      return 'Yesterday';
-    } else {
-      return messageDate.toLocaleDateString();
+    try {
+      const messageDate = normalizeTimestamp(date);
+      const today = new Date();
+      
+      // Reset time to compare only dates
+      const messageDateOnly = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      const diffTime = todayOnly.getTime() - messageDateOnly.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        return 'Today';
+      } else if (diffDays === 1) {
+        return 'Yesterday';
+      } else if (diffDays < 7) {
+        return messageDate.toLocaleDateString([], { weekday: 'long' });
+      } else {
+        return messageDate.toLocaleDateString();
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
     }
   };
 
@@ -546,14 +652,14 @@ const Chat = () => {
                       const isOwnMessage = messageSenderId === currentUserIdString;
                       
                       const showDate = index === 0 || 
-                        formatDate(message.timestamp) !== formatDate(messages[index - 1].timestamp);
+                        formatDate(message.createdAt || message.timestamp) !== formatDate(messages[index - 1].createdAt || messages[index - 1].timestamp);
 
                       return (
-                        <div key={`${message.id || 'temp'}-${messageSenderId || 'unknown'}-${index}-${message.timestamp}`}>
+                        <div key={`${message.id || 'temp'}-${messageSenderId || 'unknown'}-${index}-${message.createdAt || message.timestamp}`}>
                           {showDate && (
                             <div className="text-center mb-4">
                               <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
-                                {formatDate(message.timestamp)}
+                                {formatDate(message.createdAt || message.timestamp)}
                               </span>
                             </div>
                           )}
@@ -567,7 +673,7 @@ const Chat = () => {
                               <p className={`text-xs mt-1 ${
                                 isOwnMessage ? 'text-blue-100' : 'text-gray-500'
                               }`}>
-                                {formatTime(message.timestamp)}
+                                {formatTime(message.createdAt || message.timestamp)}
                                 {message.isOptimistic && ' (sending...)'}
                               </p>
                             </div>

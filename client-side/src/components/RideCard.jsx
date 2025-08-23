@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Clock, DollarSign, User, MessageCircle, Calendar } from 'lucide-react';
+import { MapPin, Clock, DollarSign, User, MessageCircle, Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -60,6 +60,16 @@ const RideCard = ({ ride }) => {
               Negotiable
             </span>
           )}
+        </div>
+
+        {/* Gender Preference */}
+        <div className="flex items-center text-gray-600">
+          <Users className="h-4 w-4 mr-2 text-purple-500" />
+          <span className="text-sm">
+            {ride.genderPreference === 'ANYONE' && 'Anyone'}
+            {ride.genderPreference === 'FEMALES_ONLY' && 'Females Only'}
+            {ride.genderPreference === 'MALES_ONLY' && 'Males Only'}
+          </span>
         </div>
 
         {/* Description */}

@@ -18,5 +18,6 @@ public class ChatMessage {
     private String receiverId;
     private Long rideId;
     private LocalDateTime timestamp;
+    private LocalDateTime createdAt; // Added for consistency with MessageDto
     private String sessionId;
 }

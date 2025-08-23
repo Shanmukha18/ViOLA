@@ -10,12 +10,15 @@ class ChatService {
     }
 
     connect(token, onConnected, onError) {
-        const socket = new SockJS('http://localhost:8081/ws');
+        // Create SockJS URL with JWT token as query parameter
+        const socketUrl = `http://localhost:8081/ws?token=${encodeURIComponent(token)}`;
+        const socket = new SockJS(socketUrl);
         this.stompClient = Stomp.over(socket);
         
-        // Add authentication headers
+        // Also try to add authentication headers (backup method)
         this.stompClient.connectHeaders = {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'X-Authorization': `Bearer ${token}`
         };
 
         // Configure automatic reconnection
@@ -57,15 +60,27 @@ class ChatService {
             return null;
         }
 
+        console.log(`Subscribing to ride chat: /topic/ride.${rideId}`);
         const subscription = this.stompClient.subscribe(
             `/topic/ride.${rideId}`,
             (message) => {
-                const chatMessage = JSON.parse(message.body);
-                if (onMessageReceived) onMessageReceived(chatMessage);
+                console.log(`Received message on /topic/ride.${rideId}:`, message);
+                console.log(`Message body:`, message.body);
+                try {
+                    const chatMessage = JSON.parse(message.body);
+                    console.log(`Parsed chat message:`, chatMessage);
+                    if (onMessageReceived) onMessageReceived(chatMessage);
+                } catch (error) {
+                    console.error(`Error parsing message:`, error);
+                }
+            },
+            (error) => {
+                console.error(`Subscription error for /topic/ride.${rideId}:`, error);
             }
         );
 
         this.subscriptions.set(`ride.${rideId}`, subscription);
+        console.log(`Successfully subscribed to ride chat: /topic/ride.${rideId}`);
         return subscription;
     }
 
@@ -102,7 +117,9 @@ class ChatService {
             timestamp: new Date().toISOString()
         };
 
+        console.log('Sending message:', chatMessage);
         this.stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(chatMessage));
+        console.log('Message sent successfully');
         return true;
     }
 

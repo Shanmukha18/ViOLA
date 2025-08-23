@@ -64,6 +64,16 @@ public class RideController {
         return ResponseEntity.ok().build();
     }
     
+    @DeleteMapping("/{rideId}/permanent")
+    public ResponseEntity<?> deleteRidePermanently(@PathVariable Long rideId,
+                                                 HttpServletRequest httpRequest) {
+        String token = extractTokenFromRequest(httpRequest);
+        Long userId = jwtUtil.extractUserId(token);
+        
+        rideService.deleteRidePermanently(rideId, userId);
+        return ResponseEntity.ok().build();
+    }
+    
     @GetMapping("/my-rides")
     public ResponseEntity<List<RideDto>> getMyRides(HttpServletRequest httpRequest) {
         String token = extractTokenFromRequest(httpRequest);

@@ -1,5 +1,6 @@
 package com.viola.server_side.dto;
 
+import com.viola.server_side.entity.GenderPreference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ public class RideDto {
     private BigDecimal price;
     private Boolean negotiable;
     private String description;
+    private GenderPreference genderPreference;
     private UserDto owner;
     private Boolean isActive;
     private LocalDateTime createdAt;

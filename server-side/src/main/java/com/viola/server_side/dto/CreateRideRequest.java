@@ -1,5 +1,6 @@
 package com.viola.server_side.dto;
 
+import com.viola.server_side.entity.GenderPreference;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -32,4 +33,7 @@ public class CreateRideRequest {
     private Boolean negotiable;
     
     private String description;
+    
+    @NotNull(message = "Gender preference is required")
+    private GenderPreference genderPreference = GenderPreference.ANYONE;
 }

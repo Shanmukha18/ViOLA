@@ -16,6 +16,13 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
            "ORDER BY m.createdAt ASC")
     List<Message> findConversationBetweenUsers(Long userId1, Long userId2);
     
+    @Query("SELECT m FROM Message m WHERE " +
+           "((m.sender.id = :userId1 AND m.receiver.id = :userId2) OR " +
+           "(m.sender.id = :userId2 AND m.receiver.id = :userId1)) " +
+           "AND m.ride.id = :rideId " +
+           "ORDER BY m.createdAt ASC")
+    List<Message> findConversationBetweenUsers(Long userId1, Long userId2, Long rideId);
+    
     @Query("SELECT m FROM Message m WHERE m.ride.id = :rideId " +
            "ORDER BY m.createdAt ASC")
     List<Message> findMessagesByRideId(Long rideId);
@@ -27,4 +34,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT m FROM Message m WHERE m.sender.id = :userId " +
            "ORDER BY m.createdAt DESC")
     List<Message> findMessagesBySenderId(Long userId);
+    
+    void deleteByRideId(Long rideId);
 }

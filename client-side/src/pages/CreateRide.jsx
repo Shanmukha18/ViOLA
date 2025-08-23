@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Clock, DollarSign, FileText, Save, ArrowLeft } from 'lucide-react';
+import { MapPin, Clock, DollarSign, FileText, Save, ArrowLeft, Users } from 'lucide-react';
 
 const CreateRide = () => {
   const navigate = useNavigate();
@@ -12,7 +12,8 @@ const CreateRide = () => {
     rideTime: '',
     price: '',
     negotiable: false,
-    description: ''
+    description: '',
+    genderPreference: 'ANYONE'
   });
 
   const createRideMutation = useMutation({
@@ -151,6 +152,25 @@ const CreateRide = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
+          </div>
+
+          {/* Gender Preference */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Users className="inline h-4 w-4 mr-1 text-blue-500" />
+              Gender Preference *
+            </label>
+            <select
+              name="genderPreference"
+              value={formData.genderPreference}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="ANYONE">Anyone</option>
+              <option value="FEMALES_ONLY">Females Only</option>
+              <option value="MALES_ONLY">Males Only</option>
+            </select>
           </div>
 
           {/* Negotiable */}

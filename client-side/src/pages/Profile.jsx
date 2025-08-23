@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle, Trash2 } from 'lucide-react';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -42,14 +42,22 @@ const Profile = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
+        let errorMessage = 'Failed to update profile';
+        try {
+          const error = await response.json();
+          errorMessage = error.message || error.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['user']);
+    onSuccess: (updatedUser) => {
+      // Update the user in AuthContext
+      window.location.reload(); // Simple way to refresh user data
       setIsEditing(false);
     },
     onError: (error) => {
@@ -84,6 +92,38 @@ const Profile = () => {
     },
   });
 
+  const deleteRideMutation = useMutation({
+    mutationFn: async (rideId) => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8081/api/rides/${rideId}/permanent`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to delete ride';
+        try {
+          const error = await response.json();
+          errorMessage = error.message || error.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-rides']);
+    },
+    onError: (error) => {
+      alert(`Error deleting ride: ${error.message}`);
+    },
+  });
+
   const handleEdit = () => {
     setEditForm({
       name: user?.name || '',
@@ -115,6 +155,12 @@ const Profile = () => {
   const handleResolveRide = (rideId) => {
     if (window.confirm('Are you sure you want to mark this ride as resolved? This action cannot be undone.')) {
       resolveRideMutation.mutate(rideId);
+    }
+  };
+
+  const handleDeleteRide = (rideId) => {
+    if (window.confirm('Are you sure you want to permanently delete this ride? This action cannot be undone and will:\n\n• Permanently delete the ride\n• Delete all chat messages related to this ride\n• Free up storage space')) {
+      deleteRideMutation.mutate(rideId);
     }
   };
 
@@ -326,6 +372,15 @@ const Profile = () => {
                           <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
                             Resolved
                           </span>
+                          <button
+                            onClick={() => handleDeleteRide(ride.id)}
+                            disabled={deleteRideMutation.isPending}
+                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                            title="Delete Permanently"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Delete</span>
+                          </button>
                         </div>
                       </div>
                     </div>

@@ -44,6 +44,11 @@ public class ChatService {
                 receiver = ride.getOwner();
             }
 
+            // Prevent self-chatting
+            if (sender.getId().equals(receiver.getId())) {
+                throw new RuntimeException("Cannot send message to yourself");
+            }
+
             // Create and save message
             Message message = new Message();
             message.setContent(chatMessage.getContent());
@@ -54,9 +59,16 @@ public class ChatService {
             message.setCreatedAt(LocalDateTime.now());
 
             Message savedMessage = messageRepository.save(message);
-            log.info("Saved message: {}", savedMessage.getId());
+            log.info("Saved message: {} from {} to {}", savedMessage.getId(), sender.getId(), receiver.getId());
             
-            return convertToDto(savedMessage);
+            // Convert to DTO and set both timestamp fields for consistency
+            MessageDto dto = convertToDto(savedMessage);
+            
+            // Update the original ChatMessage with the saved timestamp for WebSocket broadcasting
+            chatMessage.setTimestamp(savedMessage.getCreatedAt());
+            chatMessage.setCreatedAt(savedMessage.getCreatedAt());
+            
+            return dto;
         } catch (Exception e) {
             log.error("Error saving message: {}", e.getMessage());
             throw new RuntimeException("Failed to save message", e);
@@ -72,6 +84,13 @@ public class ChatService {
 
     public List<Message> getMessagesByUserId(Long userId) {
         return messageRepository.findMessagesBySenderId(userId);
+    }
+
+    public List<MessageDto> getConversationBetweenUsers(Long userId1, Long userId2, Long rideId) {
+        List<Message> messages = messageRepository.findConversationBetweenUsers(userId1, userId2, rideId);
+        return messages.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     public List<MessageDto> getConversationBetweenUsers(String userId) {

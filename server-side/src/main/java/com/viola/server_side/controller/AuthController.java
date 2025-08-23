@@ -61,6 +61,26 @@ public class AuthController {
         return ResponseEntity.ok(userService.convertToDto(user));
     }
     
+    @PutMapping("/profile")
+    public ResponseEntity<UserDto> updateProfile(@RequestBody ProfileUpdateRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Update user name
+        user.setName(request.getName());
+        
+        User updatedUser = userService.createOrUpdateUser(
+            user.getEmail(),
+            user.getName(),
+            user.getPhotoUrl(),
+            user.getGoogleId()
+        );
+        return ResponseEntity.ok(userService.convertToDto(updatedUser));
+    }
+    
     // DTO for Google authentication request
     public static class GoogleAuthRequest {
         private String email;
@@ -80,5 +100,14 @@ public class AuthController {
         
         public String getGoogleId() { return googleId; }
         public void setGoogleId(String googleId) { this.googleId = googleId; }
+    }
+    
+    // DTO for profile update request
+    public static class ProfileUpdateRequest {
+        private String name;
+        
+        // Getters and setters
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
     }
 }

@@ -39,6 +39,10 @@ public class Ride {
     @Column(columnDefinition = "TEXT")
     private String description;
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender_preference", nullable = false)
+    private GenderPreference genderPreference = GenderPreference.ANYONE;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -56,13 +60,15 @@ public class Ride {
     
     // Constructor for creating new rides
     public Ride(String pickup, String destination, LocalDateTime rideTime, 
-                BigDecimal price, Boolean negotiable, String description, User owner) {
+                BigDecimal price, Boolean negotiable, String description, 
+                GenderPreference genderPreference, User owner) {
         this.pickup = pickup;
         this.destination = destination;
         this.rideTime = rideTime;
         this.price = price;
         this.negotiable = negotiable;
         this.description = description;
+        this.genderPreference = genderPreference;
         this.owner = owner;
     }
 }
