@@ -42,7 +42,8 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
             log.warn("No JWT token found in handshake request");
         }
         
-        return true; // Allow the handshake to proceed even without token
+        // Allow the handshake to proceed - authentication will be handled by the channel interceptor
+        return true;
     }
     
     @Override

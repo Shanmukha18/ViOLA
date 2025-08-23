@@ -1,5 +1,6 @@
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
+import apiService from './apiService';
 
 class GlobalWebSocketService {
     constructor() {
@@ -10,12 +11,12 @@ class GlobalWebSocketService {
 
     connect(token, onConnected, onError) {
         if (this.connected || this.stompClient) {
-            console.log('Global WebSocket already connected');
+    
             return;
         }
 
         // Create SockJS URL with JWT token as query parameter
-        const socketUrl = `http://localhost:8081/ws?token=${encodeURIComponent(token)}`;
+        const socketUrl = `${apiService.wsEndpoint()}?token=${encodeURIComponent(token)}`;
         const socket = new SockJS(socketUrl);
         this.stompClient = Stomp.over(socket);
         
@@ -30,14 +31,14 @@ class GlobalWebSocketService {
 
         this.stompClient.connect(
             (frame) => {
-                console.log('Global WebSocket CONNECTED for unread notifications:', frame);
+        
                 this.connected = true;
                 
                 // Subscribe to unread notifications
                 this.stompClient.subscribe('/user/queue/unread', (message) => {
                     try {
                         const data = JSON.parse(message.body);
-                        console.log('Global WebSocket received unread notification:', data);
+                
                         
                         // Notify all registered handlers
                         this.unreadHandlers.forEach(handler => {
@@ -57,14 +58,14 @@ class GlobalWebSocketService {
             (error) => {
                 // If this is actually a CONNECTED frame (success), handle it
                 if (error && error.command === 'CONNECTED') {
-                    console.log('Global WebSocket CONNECTED (via error callback):', error);
+            
                     this.connected = true;
                     
                     // Subscribe to unread notifications
                     this.stompClient.subscribe('/user/queue/unread', (message) => {
                         try {
                             const data = JSON.parse(message.body);
-                            console.log('Global WebSocket received unread notification (error callback):', data);
+                    
                             
                             // Notify all registered handlers
                             this.unreadHandlers.forEach(handler => {

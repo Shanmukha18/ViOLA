@@ -1,5 +1,6 @@
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
+import apiService from './apiService';
 
 class ChatService {
     constructor() {
@@ -11,7 +12,7 @@ class ChatService {
 
     connect(token, onConnected, onError) {
         // Create SockJS URL with JWT token as query parameter
-        const socketUrl = `http://localhost:8081/ws?token=${encodeURIComponent(token)}`;
+        const socketUrl = `${apiService.wsEndpoint()}?token=${encodeURIComponent(token)}`;
         const socket = new SockJS(socketUrl);
         this.stompClient = Stomp.over(socket);
         
@@ -28,14 +29,14 @@ class ChatService {
         this.stompClient.connect(
             (frame) => {
                 // Success callback
-                console.log('WebSocket CONNECTED:', frame);
+        
                 this.connected = true;
                 if (onConnected) onConnected(frame);
             },
             (frame) => {
                 // Check if this is actually a CONNECTED frame (success) or an error
                 if (frame && frame.command === 'CONNECTED') {
-                    console.log('WebSocket CONNECTED (via error callback):', frame);
+            
                     this.connected = true;
                     if (onConnected) onConnected(frame);
                 } else {
@@ -60,15 +61,14 @@ class ChatService {
             return null;
         }
 
-        console.log(`Subscribing to ride chat: /topic/ride.${rideId}`);
+
         const subscription = this.stompClient.subscribe(
             `/topic/ride.${rideId}`,
             (message) => {
-                console.log(`Received message on /topic/ride.${rideId}:`, message);
-                console.log(`Message body:`, message.body);
+                
                 try {
                     const chatMessage = JSON.parse(message.body);
-                    console.log(`Parsed chat message:`, chatMessage);
+            
                     if (onMessageReceived) onMessageReceived(chatMessage);
                 } catch (error) {
                     console.error(`Error parsing message:`, error);
@@ -80,7 +80,7 @@ class ChatService {
         );
 
         this.subscriptions.set(`ride.${rideId}`, subscription);
-        console.log(`Successfully subscribed to ride chat: /topic/ride.${rideId}`);
+
         return subscription;
     }
 
@@ -117,9 +117,9 @@ class ChatService {
             timestamp: new Date().toISOString()
         };
 
-        console.log('Sending message:', chatMessage);
+
         this.stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(chatMessage));
-        console.log('Message sent successfully');
+
         return true;
     }
 

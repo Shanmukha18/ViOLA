@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import apiService from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnread } from '../contexts/UnreadContext';
 import { useNotification } from '../contexts/NotificationContext';
@@ -88,7 +89,7 @@ const Chat = () => {
     if (!isConnected && !isConnecting && token && user) {
       // Wait 3 seconds before attempting to reconnect
       reconnectTimer = setTimeout(() => {
-        console.log('Attempting to reconnect...');
+
         connectToWebSocket();
       }, 3000);
     }
@@ -111,7 +112,7 @@ const Chat = () => {
       () => {
         setIsConnected(true);
         setIsConnecting(false);
-        console.log('WebSocket connected successfully');
+
       },
       (error) => {
         setIsConnected(false);
@@ -130,7 +131,7 @@ const Chat = () => {
       // Fetch the actual ride details to get pickup and destination
       const fetchRideDetails = async () => {
         try {
-          const response = await fetch(`http://localhost:8081/api/rides/${location.state.rideId}`, {
+          const response = await fetch(apiService.ride(location.state.rideId), {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -205,7 +206,7 @@ const Chat = () => {
 
   const loadConversations = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/chat/conversations', {
+      const response = await fetch(apiService.conversations(), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -244,8 +245,8 @@ const Chat = () => {
   const loadMessages = async (rideId) => {
     setIsLoadingMessages(true);
     try {
-      console.log(`[Session ${sessionId}] Loading messages for ride ${rideId}`);
-      const response = await fetch(`http://localhost:8081/api/chat/ride/${rideId}`, {
+      
+              const response = await fetch(apiService.rideChat(rideId), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -253,7 +254,7 @@ const Chat = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`[Session ${sessionId}] Loaded ${data.length} messages from API:`, data);
+
         setMessages(data);
       } else {
         console.error(`[Session ${sessionId}] Failed to load messages:`, response.status, response.statusText);
@@ -268,18 +269,18 @@ const Chat = () => {
 
 
   const handleNewMessage = (message) => {
-    console.log(`[Session ${sessionId}] Received new message:`, message);
+    
     
     // Check if this message is from the current user
     const isFromCurrentUser = message.senderId === user.id.toString();
     
     // If message is from another user and either no conversation is selected or it's not the currently selected conversation, mark as unread
     if (!isFromCurrentUser && (!selectedConversation || message.rideId !== selectedConversation.ride.id)) {
-      console.log('Marking message as unread:', message);
+      
       // Find the conversation for this ride and mark it as unread
       setConversations(prev => prev.map(conv => {
         if (conv.ride.id === message.rideId) {
-          console.log('Updating conversation unread status for ride:', conv.ride.id);
+  
           return { ...conv, hasUnreadMessages: true };
         }
         return conv;
@@ -302,7 +303,7 @@ const Chat = () => {
       const messageExists = filteredMessages.some(msg => {
         // If both messages have IDs, compare by ID
         if (msg.id && message.id && msg.id === message.id) {
-          console.log(`[Session ${sessionId}] Message exists by ID: ${msg.id}`);
+  
           return true;
         }
         
@@ -319,7 +320,7 @@ const Chat = () => {
           
           // If messages are within 2 seconds of each other, consider it a duplicate
           if (timeDiff < 2000) {
-            console.log(`[Session ${sessionId}] Message exists by content/sender/time: content="${msg.content}", sender="${msg.senderId}", timeDiff=${timeDiff}ms`);
+    
             return true;
           }
         }
@@ -335,11 +336,11 @@ const Chat = () => {
           timestamp: message.createdAt || message.timestamp || new Date(),
           createdAt: message.createdAt || message.timestamp || new Date()
         };
-        console.log(`[Session ${sessionId}] Adding new message to UI:`, newMessage);
+
         return [...filteredMessages, newMessage];
       }
       
-      console.log(`[Session ${sessionId}] Message already exists, not adding duplicate`);
+      
       return filteredMessages;
     });
     
@@ -377,7 +378,7 @@ const Chat = () => {
     // Call backend to mark messages as read
     if (conversation.hasUnreadMessages) {
       try {
-        await fetch(`http://localhost:8081/api/chat/mark-read/${conversation.ride.id}`, {
+        await fetch(apiService.markRead(conversation.ride.id), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`

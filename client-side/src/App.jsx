@@ -14,7 +14,7 @@ import Chat from './pages/Chat';
 
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

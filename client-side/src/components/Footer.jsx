@@ -15,7 +15,12 @@ const Footer = () => {
             </div>
             <p className="text-[#A5C9CA] text-sm leading-relaxed">
               Your trusted ride-sharing platform exclusively for VIT University students. 
-              Connect, share rides, and travel together safely.
+              Connect, share rides, split expenses, and travel together safely.
+            </p>
+            <p className="text-[#A5C9CA] text-sm leading-relaxed">
+              Built with modern web technologies and a focus on user experience, ViOLA connects students who are traveling to
+              the same destinations, helping them save money, reduce environmental impact, and build connections within the VIT
+              community.
             </p>
           </div>
 
@@ -24,12 +29,12 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-[#E7F6F2]">About Us</h3>
             <div className="space-y-2 text-[#A5C9CA] text-sm">
               <p>
-                ViOLA is designed to provide a safe, convenient, and cost-effective way 
+                ViOLA is designed to provide a safe, and cost-effective way 
                 for VIT students to share rides and travel together.
               </p>
-              <p>
-                Built with modern technologies and a focus on user experience, 
-                we connect students traveling to the same destinations.
+              <p>    
+                Our platform features real-time chat, secure authentication, and a user-friendly interface that makes ride-sharing
+                simple and enjoyable.
               </p>
             </div>
           </div>

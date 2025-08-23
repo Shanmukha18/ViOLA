@@ -1,6 +1,7 @@
 package com.viola.server_side.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +20,9 @@ import java.util.Arrays;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+    
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    private String allowedOrigins;
     
     private final JwtAuthenticationFilter jwtAuthFilter;
     
@@ -45,7 +49,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // For development, allow all origins
+        if ("*".equals(allowedOrigins)) {
+            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        } else {
+            // Split the allowed origins by comma and trim whitespace
+            String[] origins = allowedOrigins.split(",");
+            for (int i = 0; i < origins.length; i++) {
+                origins[i] = origins[i].trim();
+            }
+            configuration.setAllowedOriginPatterns(Arrays.asList(origins));
+        }
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

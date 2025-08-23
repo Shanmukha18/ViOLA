@@ -15,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/rides")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins:http://localhost:3000}")
 public class RideController {
     
     private final RideService rideService;

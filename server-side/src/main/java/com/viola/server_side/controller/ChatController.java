@@ -35,7 +35,7 @@ import com.viola.server_side.repository.MessageRepository;
 @Controller
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins:http://localhost:3000}")
 public class ChatController {
 
     private final ChatService chatService;

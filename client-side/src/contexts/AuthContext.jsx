@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiService from '../services/apiService';
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/auth/me', {
+      const response = await fetch(apiService.me(), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async (googleUser) => {
     try {
-      const response = await fetch('http://localhost:8081/api/auth/google', {
+      const response = await fetch(apiService.googleAuth(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

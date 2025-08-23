@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import apiService from '../services/apiService';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Clock, FileText, Save, ArrowLeft, Users } from 'lucide-react';
@@ -25,7 +26,7 @@ const CreateRide = () => {
   const createRideMutation = useMutation({
     mutationFn: async (rideData) => {
       const token = localStorage.getItem('token');
-             const response = await fetch('http://localhost:8081/api/rides', {
+             const response = await fetch(apiService.rides(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +150,7 @@ const CreateRide = () => {
               name="pickup"
               value={formData.pickup}
               onChange={handleInputChange}
-              placeholder="e.g., VIT Main Gate, Chennai Central"
+              placeholder="e.g., VIT Main Gate, Men's Hostel"
               className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
               required
             />
@@ -166,7 +167,7 @@ const CreateRide = () => {
               name="destination"
               value={formData.destination}
               onChange={handleInputChange}
-              placeholder="e.g., T Nagar, Marina Beach"
+              placeholder="e.g., Katpadi Railway Station, Chennai Airport"
               className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
               required
             />
@@ -247,7 +248,6 @@ const CreateRide = () => {
               name="price"
               value={formData.price}
               onChange={handleInputChange}
-              placeholder="3000"
               className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
               required
             />
@@ -337,9 +337,9 @@ const CreateRide = () => {
         <h3 className="text-sm font-medium text-[#2C3333] mb-2">Tips for a great ride post:</h3>
         <ul className="text-sm text-[#395B64] space-y-1">
           <li>• Be specific about pickup and drop locations</li>
-          <li>• Set a reasonable price that others will find attractive</li>
+          <li>• Set the correct price of the ride</li>
           <li>• Add helpful details in the description</li>
-          <li>• Consider marking price as negotiable for better responses</li>
+          <li>• Include spaces between words correctly for locations</li>
         </ul>
       </div>
       </div>

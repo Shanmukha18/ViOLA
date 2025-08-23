@@ -51,15 +51,19 @@ export const UnreadProvider = ({ children }) => {
       setUnreadConversations(new Set());
       
       // Connect to global WebSocket for unread notifications
-      globalWebSocketService.connect(
-        token,
-        () => {
-          console.log('Global WebSocket connected for unread notifications');
-        },
-        (error) => {
-          console.error('Global WebSocket connection failed:', error);
-        }
-      );
+      try {
+        globalWebSocketService.connect(
+          token,
+          () => {
+    
+          },
+          (error) => {
+            console.error('Global WebSocket connection failed:', error);
+          }
+        );
+      } catch (error) {
+        console.error('Error connecting to WebSocket:', error);
+      }
     } else {
       setHasUnreadMessages(false);
       setUnreadConversations(new Set());
@@ -71,7 +75,7 @@ export const UnreadProvider = ({ children }) => {
   useEffect(() => {
     if (user && token) {
       const unsubscribe = globalWebSocketService.onUnreadNotification((data) => {
-        console.log('UnreadContext received notification:', data);
+
         
         if (data.conversationId) {
           addUnreadConversation(data.conversationId);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import apiService from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import RideCard from '../components/RideCard';
@@ -35,7 +36,7 @@ const Home = () => {
     setHasSearched(true);
 
     try {
-      const response = await fetch('http://localhost:8081/api/rides', {
+      const response = await fetch(apiService.rides(), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -108,7 +109,7 @@ const Home = () => {
             </span>
           </h1>
           <p className="text-lg text-[#E7F6F2] max-w-2xl mx-auto">
-            Connect with fellow students for safe and convenient ride sharing. 
+            Connect with fellow students for safe and cost effective ride sharing. 
             Search for rides or create your own journey.
           </p>
         </div>

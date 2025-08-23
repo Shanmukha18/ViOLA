@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import apiService from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle, Trash2, LogOut } from 'lucide-react';
@@ -28,7 +29,7 @@ const Profile = () => {
     queryKey: ['my-rides'],
     queryFn: async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8081/api/rides/my-rides', {
+      const response = await fetch(apiService.myRides(), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -44,7 +45,7 @@ const Profile = () => {
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData) => {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8081/api/auth/profile', {
+      const response = await fetch(apiService.updateProfile(), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ const Profile = () => {
   const resolveRideMutation = useMutation({
     mutationFn: async (rideId) => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/rides/${rideId}`, {
+      const response = await fetch(apiService.ride(rideId), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -109,7 +110,7 @@ const Profile = () => {
   const deleteRideMutation = useMutation({
     mutationFn: async (rideId) => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/rides/${rideId}/permanent`, {
+      const response = await fetch(apiService.deleteRide(rideId), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -405,7 +406,7 @@ const Profile = () => {
                             title="Mark as Resolved"
                           >
                             <CheckCircle className="h-3 w-3" />
-                            <span>Resolve</span>
+                            <span>Mark as Resolved</span>
                           </button>
                         </div>
                       </div>
