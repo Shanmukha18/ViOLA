@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { useUnread } from '../contexts/UnreadContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Car, MessageCircle, User, HelpCircle, LogOut } from 'lucide-react';
 
 const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const { unreadCount } = useUnread();
   const location = useLocation();
+  const { hasUnreadMessages } = useUnread();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const isActive = (path) => location.pathname === path;
 
@@ -61,8 +61,8 @@ const Navbar = () => {
                 >
                                      <div className="relative">
                      <MessageCircle className="h-4 w-4" />
-                     {unreadCount > 0 && (
-                       <span className="absolute -top-2 -right-2 bg-red-500 rounded-full h-3 w-3"></span>
+                     {hasUnreadMessages && (
+                       <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
                      )}
                    </div>
                   <span>Chat</span>

@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Clock, DollarSign, FileText, Save, ArrowLeft, Users } from 'lucide-react';
+import { MapPin, Clock, FileText, Save, ArrowLeft, Users } from 'lucide-react';
+import { useNotification } from '../contexts/NotificationContext';
+import { capitalizeLocation } from '../utils/locationUtils';
 
 const CreateRide = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { showError, showSuccess } = useNotification();
   const [formData, setFormData] = useState({
     pickup: '',
     destination: '',
-    rideTime: '',
+    rideDate: '',
+    rideHour: '12',
+    rideMinute: '00',
+    ridePeriod: 'AM',
     price: '',
     negotiable: false,
     description: '',
@@ -37,33 +43,69 @@ const CreateRide = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['rides']);
+      showSuccess('Ride created successfully!');
       navigate('/');
     },
     onError: (error) => {
-      alert(`Error creating ride: ${error.message}`);
+      showError(`Error creating ride: ${error.message}`);
     },
   });
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Auto-capitalize pickup and destination fields
+    let processedValue = value;
+    if (name === 'pickup' || name === 'destination') {
+      processedValue = capitalizeLocation(value);
+    }
+    
+    // Handle price field - only allow numbers and prevent leading zeros
+    if (name === 'price') {
+      // Remove any non-numeric characters
+      let numericValue = value.replace(/[^0-9]/g, '');
+      
+      // Remove leading zeros (but keep single '0' if that's all there is)
+      if (numericValue.length > 1 && numericValue.startsWith('0')) {
+        numericValue = numericValue.replace(/^0+/, '');
+      }
+      
+      processedValue = numericValue;
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : processedValue
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.pickup || !formData.destination || !formData.rideTime || !formData.price) {
-      alert('Please fill in all required fields');
+    if (!formData.pickup || !formData.destination || !formData.rideDate || !formData.rideHour || !formData.rideMinute || !formData.price) {
+      showError('Please fill in all required fields');
       return;
     }
 
+    // Validate price - must be a positive number starting with non-zero digit
+    // This regex ensures: ^[1-9] (starts with 1-9) \d* (followed by any number of digits)
+    if (!/^[1-9]\d*$/.test(formData.price)) {
+      showError('Price must be a positive number starting with a non-zero digit');
+      return;
+    }
+
+    // Format time as "HH:MM AM/PM"
+    const formattedTime = `${formData.rideHour.padStart(2, '0')}:${formData.rideMinute.padStart(2, '0')} ${formData.ridePeriod}`;
+    
     const rideData = {
-      ...formData,
-      price: parseFloat(formData.price),
-      rideTime: new Date(formData.rideTime).toISOString()
+      pickup: formData.pickup,
+      destination: formData.destination,
+      rideDate: formData.rideDate,
+      rideTime: formattedTime,
+      price: formData.price,
+      negotiable: formData.negotiable,
+      description: formData.description,
+      genderPreference: formData.genderPreference
     };
 
     createRideMutation.mutate(rideData);
@@ -120,35 +162,74 @@ const CreateRide = () => {
           </div>
 
           {/* Date and Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Clock className="inline h-4 w-4 mr-1 text-blue-500" />
-              Ride Date & Time *
-            </label>
-            <input
-              type="datetime-local"
-              name="rideTime"
-              value={formData.rideTime}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clock className="inline h-4 w-4 mr-1 text-blue-500" />
+                Ride Date *
+              </label>
+              <input
+                type="date"
+                name="rideDate"
+                value={formData.rideDate}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clock className="inline h-4 w-4 mr-1 text-blue-500" />
+                Ride Time *
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  name="rideHour"
+                  value={formData.rideHour}
+                  onChange={handleInputChange}
+                  min="01"
+                  max="12"
+                  className="w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+                <span className="flex items-center text-gray-500">:</span>
+                <input
+                  type="number"
+                  name="rideMinute"
+                  value={formData.rideMinute}
+                  onChange={handleInputChange}
+                  min="00"
+                  max="59"
+                  className="w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+                <select
+                  name="ridePeriod"
+                  value={formData.ridePeriod}
+                  onChange={handleInputChange}
+                  className="w-1/3 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <DollarSign className="inline h-4 w-4 mr-1 text-green-500" />
-              Price (₹) *
+              <span className="inline h-4 w-4 mr-1 text-green-500">₹</span>
+              Price *
             </label>
             <input
-              type="number"
+              type="text"
               name="price"
               value={formData.price}
               onChange={handleInputChange}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
+              placeholder="3000"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />

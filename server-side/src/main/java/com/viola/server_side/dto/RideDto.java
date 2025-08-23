@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,8 +14,9 @@ public class RideDto {
     private Long id;
     private String pickup;
     private String destination;
-    private LocalDateTime rideTime;
-    private BigDecimal price;
+    private String rideDate;
+    private String rideTime;
+    private String price;
     private Boolean negotiable;
     private String description;
     private GenderPreference genderPreference;

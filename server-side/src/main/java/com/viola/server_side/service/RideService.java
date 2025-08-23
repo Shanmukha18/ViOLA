@@ -28,6 +28,7 @@ public class RideService {
         Ride ride = new Ride(
             request.getPickup(),
             request.getDestination(),
+            request.getRideDate(),
             request.getRideTime(),
             request.getPrice(),
             request.getNegotiable(),
@@ -70,6 +71,7 @@ public class RideService {
         
         ride.setPickup(request.getPickup());
         ride.setDestination(request.getDestination());
+        ride.setRideDate(request.getRideDate());
         ride.setRideTime(request.getRideTime());
         ride.setPrice(request.getPrice());
         ride.setNegotiable(request.getNegotiable());
@@ -117,6 +119,7 @@ public class RideService {
             ride.getId(),
             ride.getPickup(),
             ride.getDestination(),
+            ride.getRideDate(),
             ride.getRideTime(),
             ride.getPrice(),
             ride.getNegotiable(),

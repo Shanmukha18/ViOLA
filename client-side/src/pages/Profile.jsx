@@ -2,15 +2,26 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Mail, Calendar, Shield, Edit, Save, X, CheckCircle, Trash2 } from 'lucide-react';
+import { useNotification } from '../contexts/NotificationContext';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
   });
+  const [showResolveConfirm, setShowResolveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [rideToAction, setRideToAction] = useState(null);
+
+  // Price formatting function
+  const formatPrice = (price) => {
+    // Since price is now stored as string, just add the rupee symbol
+    return `₹${price || '0'}`;
+  };
 
   const { data: myRides, isLoading: ridesLoading } = useQuery({
     queryKey: ['my-rides'],
@@ -59,9 +70,10 @@ const Profile = () => {
       // Update the user in AuthContext
       window.location.reload(); // Simple way to refresh user data
       setIsEditing(false);
+      showSuccess('Profile updated successfully!');
     },
     onError: (error) => {
-      alert(`Error updating profile: ${error.message}`);
+      showError(`Error updating profile: ${error.message}`);
     },
   });
 
@@ -86,9 +98,10 @@ const Profile = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['my-rides']);
       queryClient.invalidateQueries(['rides']); // Also refresh home page rides
+      showSuccess('Ride marked as resolved successfully!');
     },
     onError: (error) => {
-      alert(`Error resolving ride: ${error.message}`);
+      showError(`Error resolving ride: ${error.message}`);
     },
   });
 
@@ -118,9 +131,10 @@ const Profile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['my-rides']);
+      showSuccess('Ride deleted successfully!');
     },
     onError: (error) => {
-      alert(`Error deleting ride: ${error.message}`);
+      showError(`Error deleting ride: ${error.message}`);
     },
   });
 
@@ -153,15 +167,39 @@ const Profile = () => {
   };
 
   const handleResolveRide = (rideId) => {
-    if (window.confirm('Are you sure you want to mark this ride as resolved? This action cannot be undone.')) {
-      resolveRideMutation.mutate(rideId);
+    setRideToAction(rideId);
+    setShowResolveConfirm(true);
+  };
+
+  const confirmResolveRide = () => {
+    if (rideToAction) {
+      resolveRideMutation.mutate(rideToAction);
     }
+    setShowResolveConfirm(false);
+    setRideToAction(null);
+  };
+
+  const cancelResolveRide = () => {
+    setShowResolveConfirm(false);
+    setRideToAction(null);
   };
 
   const handleDeleteRide = (rideId) => {
-    if (window.confirm('Are you sure you want to permanently delete this ride? This action cannot be undone and will:\n\n• Permanently delete the ride\n• Delete all chat messages related to this ride\n• Free up storage space')) {
-      deleteRideMutation.mutate(rideId);
+    setRideToAction(rideId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteRide = () => {
+    if (rideToAction) {
+      deleteRideMutation.mutate(rideToAction);
     }
+    setShowDeleteConfirm(false);
+    setRideToAction(null);
+  };
+
+  const cancelDeleteRide = () => {
+    setShowDeleteConfirm(false);
+    setRideToAction(null);
   };
 
   if (!user) {
@@ -322,10 +360,14 @@ const Profile = () => {
                             {ride.pickup} → {ride.destination}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            {new Date(ride.rideTime).toLocaleString()}
+                            {new Date(ride.rideDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: '2-digit'
+                            })} - {ride.rideTime}
                           </p>
                           <p className="text-sm text-gray-600">
-                            Price: ₹{ride.price} {ride.negotiable && '(Negotiable)'}
+                            Price: {formatPrice(ride.price)} {ride.negotiable && '(Negotiable)'}
                           </p>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -362,10 +404,14 @@ const Profile = () => {
                             {ride.pickup} → {ride.destination}
                           </h3>
                           <p className="text-sm text-gray-500">
-                            {new Date(ride.rideTime).toLocaleString()}
+                            {new Date(ride.rideDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: '2-digit'
+                            })} - {ride.rideTime}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Price: ₹{ride.price} {ride.negotiable && '(Negotiable)'}
+                            Price: {formatPrice(ride.price)} {ride.negotiable && '(Negotiable)'}
                           </p>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -391,6 +437,65 @@ const Profile = () => {
           </div>
         )}
       </div>
+
+      {/* Resolve Ride Confirmation Dialog */}
+      {showResolveConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Resolve Ride</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to mark this ride as resolved? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelResolveRide}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmResolveRide}
+                disabled={resolveRideMutation.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {resolveRideMutation.isPending ? 'Resolving...' : 'Resolve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Ride Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Delete Ride</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to permanently delete this ride? This action cannot be undone and will:
+            </p>
+            <ul className="text-gray-600 mb-6 list-disc list-inside space-y-1">
+              <li>Permanently delete the ride</li>
+              <li>Delete all chat messages related to this ride</li>
+              <li>Free up storage space</li>
+            </ul>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDeleteRide}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteRide}
+                disabled={deleteRideMutation.isPending}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleteRideMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -84,6 +84,38 @@ public class ChatController {
                     chatMessage
                 );
                 log.info("Private message sent to user: {}", chatMessage.getReceiverId());
+                
+                // Send unread notification to receiver
+                log.info("Attempting to send unread notification to receiver: {}", chatMessage.getReceiverId());
+                try {
+                    // Find the conversation ID for this ride and users
+                    Long rideId = chatMessage.getRideId();
+                    Long senderId = Long.parseLong(chatMessage.getSenderId());
+                    Long receiverId = Long.parseLong(chatMessage.getReceiverId());
+                    
+                    log.info("Creating unread notification - rideId: {}, senderId: {}, receiverId: {}", rideId, senderId, receiverId);
+                    
+                    // Create notification with conversation ID (which is the ride ID)
+                    Map<String, Object> unreadNotification = new HashMap<>();
+                    unreadNotification.put("type", "unread_message");
+                    unreadNotification.put("conversationId", rideId); // Use ride ID as conversation ID
+                    unreadNotification.put("rideId", rideId);
+                    unreadNotification.put("senderId", senderId);
+                    unreadNotification.put("message", "You have a new message");
+                    
+                    log.info("Sending unread notification: {}", unreadNotification);
+                    
+                    messagingTemplate.convertAndSendToUser(
+                        chatMessage.getReceiverId(),
+                        "/queue/unread",
+                        unreadNotification
+                    );
+                    log.info("Unread notification sent to user: {}", chatMessage.getReceiverId());
+                } catch (Exception e) {
+                    log.error("Error sending unread notification: {}", e.getMessage(), e);
+                }
+            } else {
+                log.warn("No receiverId provided, skipping unread notification");
             }
             
             return chatMessage;

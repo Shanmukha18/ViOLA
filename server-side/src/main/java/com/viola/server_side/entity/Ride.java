@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -27,11 +26,14 @@ public class Ride {
     @Column(nullable = false)
     private String destination;
     
+    @Column(name = "ride_date", nullable = false)
+    private String rideDate;
+    
     @Column(name = "ride_time", nullable = false)
-    private LocalDateTime rideTime;
+    private String rideTime;
     
     @Column(nullable = false)
-    private BigDecimal price;
+    private String price;
     
     @Column(nullable = false)
     private Boolean negotiable;
@@ -59,11 +61,12 @@ public class Ride {
     private LocalDateTime updatedAt;
     
     // Constructor for creating new rides
-    public Ride(String pickup, String destination, LocalDateTime rideTime, 
-                BigDecimal price, Boolean negotiable, String description, 
+    public Ride(String pickup, String destination, String rideDate, 
+                String rideTime, String price, Boolean negotiable, String description, 
                 GenderPreference genderPreference, User owner) {
         this.pickup = pickup;
         this.destination = destination;
+        this.rideDate = rideDate;
         this.rideTime = rideTime;
         this.price = price;
         this.negotiable = negotiable;

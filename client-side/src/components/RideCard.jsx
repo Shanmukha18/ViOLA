@@ -1,6 +1,5 @@
 import React from 'react';
-import { MapPin, Clock, DollarSign, User, MessageCircle, Calendar, Users } from 'lucide-react';
-import { format } from 'date-fns';
+import { MapPin, Clock, User, MessageCircle, Calendar, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,13 +8,18 @@ const RideCard = ({ ride }) => {
   const navigate = useNavigate();
   const isOwner = user?.id === ride.owner.id;
 
-  const formatDateTime = (dateTimeString) => {
-    const date = new Date(dateTimeString);
-    return format(date, 'MMM dd, yyyy - HH:mm');
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit'
+    });
   };
 
   const formatPrice = (price) => {
-    return `₹${price}`;
+    // Since price is now stored as string, just return it directly
+    return price || '0';
   };
 
   return (
@@ -44,13 +48,13 @@ const RideCard = ({ ride }) => {
         {/* Time */}
         <div className="flex items-center text-gray-600">
           <Clock className="h-4 w-4 mr-2 text-blue-500" />
-          <span className="text-sm">{formatDateTime(ride.rideTime)}</span>
+          <span className="text-sm">{formatDate(ride.rideDate)} - {ride.rideTime}</span>
         </div>
 
         {/* Price */}
         <div className="flex items-center justify-between">
           <div className="flex items-center text-gray-600">
-            <DollarSign className="h-4 w-4 mr-2 text-green-500" />
+            <span className="text-lg font-bold text-green-500 mr-2">₹</span>
             <span className="font-semibold text-lg text-green-600">
               {formatPrice(ride.price)}
             </span>
@@ -113,7 +117,11 @@ const RideCard = ({ ride }) => {
 
         {/* Posted Time */}
         <div className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
-          Posted {format(new Date(ride.createdAt), 'MMM dd, yyyy')}
+          Posted {new Date(ride.createdAt).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: '2-digit', 
+            year: 'numeric' 
+          })}
         </div>
       </div>
     </div>

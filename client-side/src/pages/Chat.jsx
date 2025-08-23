@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnread } from '../contexts/UnreadContext';
+import { useNotification } from '../contexts/NotificationContext';
 import { useLocation } from 'react-router-dom';
 import { Send, MessageCircle, User, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 import chatService from '../services/chatService';
@@ -40,7 +41,8 @@ const scrollbarStyles = `
 
 const Chat = () => {
   const { user, token } = useAuth();
-  const { markConversationAsRead, isConversationUnread, setUnreadCount, addUnreadConversation, refreshUnreadCount } = useUnread();
+  const { markConversationAsRead, isConversationUnread, addUnreadConversation, setUnreadState } = useUnread();
+  const { showError, showInfo } = useNotification();
   const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -213,8 +215,8 @@ const Chat = () => {
         const data = await response.json();
         setConversations(data);
         
-        // Refresh unread count after loading conversations
-        refreshUnreadCount();
+        // Set unread state based on loaded conversations
+        setUnreadState(data);
       }
     } catch (error) {
       console.error('Failed to load conversations:', error);
@@ -390,8 +392,8 @@ const Chat = () => {
           return conv;
         }));
         
-        // Refresh unread count
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        // Mark conversation as read in unread context
+        markConversationAsRead(conversation.id);
       } catch (error) {
         console.error('Failed to mark conversation as read:', error);
       }
@@ -403,7 +405,7 @@ const Chat = () => {
 
     // Prevent self-chatting
     if (user.id === selectedConversation.user.id) {
-      alert('You cannot send messages to yourself.');
+      showInfo('You cannot send messages to yourself.');
       return;
     }
 
@@ -419,7 +421,7 @@ const Chat = () => {
     );
 
     if (!success) {
-      alert('Failed to send message. Please check your connection.');
+      showError('Failed to send message. Please check your connection.');
     }
   };
 
@@ -537,21 +539,16 @@ const Chat = () => {
                         <User className="h-5 w-5 text-blue-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                                                 <div className="flex items-center justify-between">
-                           <h3 className={`text-sm font-medium truncate ${
-                             isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
-                           }`}>
-                             {conversation.user.name}
-                           </h3>
-                           <span className="text-xs text-gray-500 flex-shrink-0">
-                             {formatTime(conversation.lastMessageTime)}
-                           </span>
-                         </div>
-                                                   <p className={`text-sm truncate ${
-                            isUnread ? 'font-bold text-gray-900' : 'text-gray-700'
+                                                                         <div className="flex items-center justify-between">
+                          <h3 className={`text-sm font-medium truncate ${
+                            isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
                           }`}>
-                            {conversation.lastMessage}
-                          </p>
+                            {conversation.user.name}
+                          </h3>
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            {formatTime(conversation.lastMessageTime)}
+                          </span>
+                        </div>
                          {conversation.isOwner && (
                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-1">
                              Your Ride

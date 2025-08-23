@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import globalWebSocketService from '../services/globalWebSocketService';
 
 const UnreadContext = createContext();
 
@@ -13,65 +14,27 @@ export const useUnread = () => {
 
 export const UnreadProvider = ({ children }) => {
   const { user, token } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [unreadConversations, setUnreadConversations] = useState(new Set());
-
-  // Fetch unread count from backend
-  const fetchUnreadCount = async () => {
-    if (!token || !user) return;
-    
-    try {
-      console.log('Fetching unread count for user:', user.email);
-      const response = await fetch('http://localhost:8081/api/chat/unread-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Unread count response:', data);
-        // Just set to 1 if there are any unread messages, 0 otherwise
-        setUnreadCount(data.hasUnread ? 1 : 0);
-      } else {
-        console.error('Failed to fetch unread count, status:', response.status);
-        setUnreadCount(0);
-      }
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
-      // Set to 0 if there's an error
-      setUnreadCount(0);
-    }
-  };
 
   // Mark conversation as read
   const markConversationAsRead = (conversationId) => {
     setUnreadConversations(prev => {
       const newSet = new Set(prev);
       newSet.delete(conversationId);
+      const hasUnread = newSet.size > 0;
+      setHasUnreadMessages(hasUnread);
       return newSet;
-    });
-    
-    // Update total count - just check if there are any unread conversations left
-    setUnreadCount(prev => {
-      const newSet = new Set(unreadConversations);
-      newSet.delete(conversationId);
-      return newSet.size;
     });
   };
 
-  // Add unread conversation
+  // Add unread conversation (called when new message arrives)
   const addUnreadConversation = (conversationId) => {
     setUnreadConversations(prev => {
       const newSet = new Set(prev);
       newSet.add(conversationId);
+      setHasUnreadMessages(true); // Set to true when any unread message exists
       return newSet;
-    });
-    
-    setUnreadCount(prev => {
-      const newSet = new Set(unreadConversations);
-      newSet.add(conversationId);
-      return newSet.size;
     });
   };
 
@@ -80,37 +43,72 @@ export const UnreadProvider = ({ children }) => {
     return unreadConversations.has(conversationId);
   };
 
-  // Fetch unread count on mount and when user changes
+  // Initialize unread state when user changes
   useEffect(() => {
     if (user && token) {
-      fetchUnreadCount();
-      
-      // Set up periodic refresh every 30 seconds
-      const interval = setInterval(fetchUnreadCount, 30000);
-      
-      return () => clearInterval(interval);
-    } else {
-      setUnreadCount(0);
+      // Reset state for new user
+      setHasUnreadMessages(false);
       setUnreadConversations(new Set());
+      
+      // Connect to global WebSocket for unread notifications
+      globalWebSocketService.connect(
+        token,
+        () => {
+          console.log('Global WebSocket connected for unread notifications');
+        },
+        (error) => {
+          console.error('Global WebSocket connection failed:', error);
+        }
+      );
+    } else {
+      setHasUnreadMessages(false);
+      setUnreadConversations(new Set());
+      globalWebSocketService.disconnect();
     }
   }, [user, token]);
 
-  // Expose a function to manually refresh unread count
-  const refreshUnreadCount = () => {
+  // Subscribe to unread notifications
+  useEffect(() => {
     if (user && token) {
-      fetchUnreadCount();
+      const unsubscribe = globalWebSocketService.onUnreadNotification((data) => {
+        console.log('UnreadContext received notification:', data);
+        
+        if (data.conversationId) {
+          addUnreadConversation(data.conversationId);
+        } else if (data.rideId) {
+          // If we don't have conversation ID but have rideId, 
+          // we'll mark it as unread and the conversation will be updated when chat page loads
+          setHasUnreadMessages(true);
+        }
+      });
+
+      return unsubscribe;
     }
+  }, [user, token]);
+
+  // Function to manually set unread state (called from Chat page when loading conversations)
+  const setUnreadState = (conversations) => {
+    const unreadIds = new Set();
+    let hasUnread = false;
+    
+    conversations.forEach(conv => {
+      if (conv.hasUnreadMessages) {
+        unreadIds.add(conv.id);
+        hasUnread = true;
+      }
+    });
+    
+    setUnreadConversations(unreadIds);
+    setHasUnreadMessages(hasUnread);
   };
 
   const value = {
-    unreadCount,
+    hasUnreadMessages, // Boolean instead of count
     unreadConversations,
     markConversationAsRead,
     addUnreadConversation,
     isConversationUnread,
-    fetchUnreadCount,
-    setUnreadCount,
-    refreshUnreadCount
+    setUnreadState
   };
 
   return (
