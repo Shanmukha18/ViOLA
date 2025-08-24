@@ -1,24 +1,8 @@
-# 🚗 ViOLA - VIT Ride Sharing Platform
+# ViOLA - VIT Ride Sharing Platform
 
 A full-stack ride-sharing application designed specifically for VIT students, enabling safe and cost-effective carpooling within the VIT community.
 
-![ViOLA Banner](https://via.placeholder.com/1200x400/395B64/FFFFFF?text=ViOLA+-+VIT+Ride+Sharing+Platform)
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Documentation](#api-documentation)
-- [Deployment](#deployment)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-- [License](#license)
-
-## 🎯 Overview
+## Overview
 
 ViOLA (VIT Ride Sharing) is a comprehensive ride-sharing platform that connects VIT students for safe and affordable transportation. The application features real-time chat, ride management, and a user-friendly interface designed specifically for the VIT community.
 
@@ -143,19 +127,20 @@ spring.security.oauth2.client.registration.google.client-secret=your-client-secr
 ## 📸 Screenshots
 
 ### Home Page
-![Home Page](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Home+Page+-+Search+and+Discover+Rides)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/fac0d963-cd8b-4c10-bf88-c0ca274a2cf7" />
 
 ### Ride Creation
-![Create Ride](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Create+Ride+-+Post+New+Ride+Form)
+<img width="1755" height="1802" alt="image" src="https://github.com/user-attachments/assets/583bfb09-5ccd-494b-a567-a43ae846bb0c" />
 
 ### Chat Interface
-![Chat Interface](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Chat+Interface+-+Real-time+Messaging)
+<img width="1755" height="1536" alt="image" src="https://github.com/user-attachments/assets/3f1cd138-307e-4705-bb5b-fcc1966dfd06" />
 
 ### User Profile
-![User Profile](https://via.placeholder.com/800x500/395B64/FFFFFF?text=User+Profile+-+Manage+Account+and+History)
+![WhatsApp Image 2025-08-24 at 12 02 32_9a845899](https://github.com/user-attachments/assets/08a6ff50-d68c-41f2-ae50-3dc31ace2dca)
 
 ### Ride Cards
-![Ride Cards](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Ride+Cards+-+Browse+Available+Rides)
+<img width="1856" height="1562" alt="image" src="https://github.com/user-attachments/assets/96b41224-727e-44af-bcc9-966908a66ba2" />
+
 
 
 ### Project Structure
