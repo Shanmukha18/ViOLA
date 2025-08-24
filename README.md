@@ -1,221 +1,203 @@
-# 🚗 ViOLA - VIT's Cab Ride Sharing Platform
+# 🚗 ViOLA - VIT Ride Sharing Platform
 
-A modern, secure, and user-friendly cab ride sharing platform exclusively for VIT students. Built with React, Spring Boot, and PostgreSQL.
+A full-stack ride-sharing application designed specifically for VIT students, enabling safe and cost-effective carpooling within the VIT community.
 
-## ✨ Features
+![ViOLA Banner](https://via.placeholder.com/1200x400/395B64/FFFFFF?text=ViOLA+-+VIT+Ride+Sharing+Platform)
 
-- **🔐 Secure Authentication**: Google OAuth2 restricted to @vit.ac.in domain
-- **🚗 Ride Management**: Post, view, and manage cab rides
-- **💬 Real-time Chat**: In-app messaging between students
-- **🔍 Smart Search**: Filter rides by location, time, and price
-- **📱 Responsive Design**: Works seamlessly on all devices
-- **🛡️ Student Verification**: Automatic verification for VIT students
-- **📞 Customer Support**: Multiple support channels
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Deployment](#deployment)
+- [Screenshots](#screenshots)
+- [Contributing](#contributing)
+- [License](#license)
+
+## 🎯 Overview
+
+ViOLA (VIT Ride Sharing) is a comprehensive ride-sharing platform that connects VIT students for safe and affordable transportation. The application features real-time chat, ride management, and a user-friendly interface designed specifically for the VIT community.
+
+### Key Highlights
+
+- **🔐 Secure Authentication**: Google OAuth2 integration for VIT email addresses
+- **💬 Real-time Chat**: WebSocket-based messaging system
+- **📍 Location-based Search**: Advanced filtering for ride discovery
+- **📱 Responsive Design**: Optimized for desktop and mobile devices
+- **🔔 Real-time Notifications**: Instant updates for new messages and rides
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18**: Modern React with hooks and functional components
+- **Vite**: Fast build tool and development server
+- **Tailwind CSS**: Utility-first CSS framework
+- **Lucide React**: Icon library
+- **React Router**: Client-side routing
+- **React Query**: Server state management
+- **WebSocket**: Real-time communication
+
+### Backend
+- **Spring Boot 3**: Java-based REST API framework
+- **Java 17**: Modern Java with latest features
+- **Spring Security**: Authentication and authorization
+- **Spring WebSocket**: Real-time messaging support
+- **JWT**: JSON Web Token authentication
+- **Maven**: Dependency management and build tool
+
+### Database
+- **PostgreSQL**: Reliable relational database
+- **HikariCP**: High-performance connection pooling
+- **JPA/Hibernate**: Object-relational mapping
 
 ## 🏗️ Architecture
 
-### Frontend (React + Vite)
-- **React 19** with modern hooks and functional components
-- **Vite** for fast development and building
-- **TailwindCSS** for beautiful, responsive UI
-- **React Query** for efficient API state management
-- **React Router** for navigation
-- **WebSocket** support for real-time features
-
-### Backend (Spring Boot)
-- **Spring Boot 3.5.5** with Java 24
-- **Spring Security** with JWT authentication
-- **Spring Data JPA** for database operations
-- **WebSocket** support for real-time communication
-- **PostgreSQL** as the primary database
-- **Lombok** for reducing boilerplate code
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Java 24 or higher
-- Node.js 18 or higher
-- PostgreSQL 12 or higher
-- Maven 3.6 or higher
-
-### Backend Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ViOLA
-   ```
-
-2. **Configure PostgreSQL**
-   ```bash
-   # Create database
-   createdb viola_cab_sharing
-   
-   # Update application.properties with your database credentials
-   # server-side/src/main/resources/application.properties
-   ```
-
-3. **Configure Google OAuth2**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select existing one
-   - Enable Google+ API
-   - Create OAuth 2.0 credentials
-   - Update `application.properties` with your client ID and secret
-
-4. **Start the backend**
-   ```bash
-   cd server-side
-   mvn spring-boot:run
-   ```
-
-### Frontend Setup
-
-1. **Install dependencies**
-   ```bash
-   cd client-side
-   npm install
-   ```
-
-2. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-3. **Open your browser**
-   Navigate to `http://localhost:5173`
-
-## 📁 Project Structure
-
+### System Architecture
 ```
-ViOLA/
-├── client-side/                 # React frontend
-│   ├── src/
-│   │   ├── components/         # Reusable UI components
-│   │   ├── contexts/           # React contexts (Auth)
-│   │   ├── pages/              # Page components
-│   │   ├── App.jsx             # Main app component
-│   │   └── main.jsx            # App entry point
-│   ├── package.json            # Frontend dependencies
-│   └── vite.config.js          # Vite configuration
-├── server-side/                 # Spring Boot backend
-│   ├── src/main/java/
-│   │   └── com/viola/server_side/
-│   │       ├── config/         # Configuration classes
-│   │       ├── controller/     # REST controllers
-│   │       ├── dto/            # Data Transfer Objects
-│   │       ├── entity/         # JPA entities
-│   │       ├── repository/     # Data repositories
-│   │       ├── security/       # Security configuration
-│   │       └── service/        # Business logic services
-│   ├── pom.xml                 # Maven dependencies
-│   └── application.properties  # Application configuration
-└── README.md                   # This file
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend       │    │   Database      │
+│   (React/Vite)  │◄──►│  (Spring Boot)  │◄──►│  (PostgreSQL)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │
+         │              ┌─────────────────┐
+         └─────────────►│   WebSocket     │
+                        │   (Real-time)   │
+                        └─────────────────┘
 ```
 
-## 🔧 Configuration
+### Frontend Architecture
+- **Component-based**: Modular React components
+- **Context API**: Global state management
+- **Custom Hooks**: Reusable logic
+- **Service Layer**: API communication abstraction
+
+### Backend Architecture
+- **RESTful API**: Standard HTTP endpoints
+- **Layered Architecture**: Controller → Service → Repository
+- **WebSocket Support**: Real-time messaging
+- **Security Layer**: JWT authentication and authorization
+
+## 🚀 Installation
 
 ### Environment Variables
 
-Create a `.env` file in the `server-side` directory:
+#### Frontend (.env.local)
+```env
+VITE_API_BASE_URL=http://localhost:8081
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+```
 
+#### Backend (application.properties)
 ```properties
-# Database
-DB_URL=jdbc:postgresql://localhost:5432/viola_cab_sharing
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/viola_db
+spring.datasource.username=your_username
+spring.datasource.password=your_password
 
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-here-make-it-very-long-and-secure
-JWT_EXPIRATION=86400000
+# JWT Configuration
+jwt.secret=your-jwt-secret
+jwt.expiration=86400000
 
 # Google OAuth2
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+spring.security.oauth2.client.registration.google.client-id=your-client-id
+spring.security.oauth2.client.registration.google.client-secret=your-client-secret
 ```
 
-### Database Schema
+## 📖 Usage
 
-The application will automatically create the necessary tables on startup:
+### For Students
 
-- **users**: User profiles and authentication
-- **rides**: Ride information and details
-- **messages**: Chat messages between users
+1. **Sign In**: Use your VIT email address to authenticate via Google
+2. **Browse Rides**: Search for available rides using filters
+3. **Create Rides**: Post your own rides for others to join
+4. **Chat**: Communicate with ride participants in real-time
+5. **Manage Profile**: Update your profile and view ride history
 
-## 🧪 Testing
+## 📚 API Documentation
 
-### Backend Tests
-```bash
-cd server-side
-mvn test
-```
+### Authentication Endpoints
+- `POST /api/auth/google` - Google OAuth2 authentication
+- `POST /api/auth/refresh` - Refresh JWT token
+- `GET /api/auth/profile` - Get user profile
 
-### Frontend Tests
-```bash
-cd client-side
-npm test
-```
-
-## 🚀 Deployment
-
-### Backend Deployment
-1. Build the JAR file: `mvn clean package`
-2. Deploy to your preferred platform (AWS, Azure, Heroku, etc.)
-3. Set environment variables for production
-
-### Frontend Deployment
-1. Build the production bundle: `npm run build`
-2. Deploy the `dist` folder to your hosting service (Vercel, Netlify, etc.)
-
-## 🔒 Security Features
-
-- **JWT Authentication**: Secure token-based authentication
-- **Domain Restriction**: Only @vit.ac.in emails allowed
-- **CORS Configuration**: Proper cross-origin resource sharing
-- **Input Validation**: Server-side validation for all inputs
-- **SQL Injection Protection**: JPA/Hibernate with parameterized queries
-
-## 📱 API Endpoints
-
-### Authentication
-- `POST /api/auth/google` - Google OAuth2 login
-- `GET /api/auth/me` - Get current user profile
-
-### Rides
-- `GET /api/rides` - Get all active rides
-- `POST /api/rides` - Create a new ride
-- `GET /api/rides/{id}` - Get ride by ID
+### Ride Endpoints
+- `GET /api/rides` - Get all rides
+- `POST /api/rides` - Create new ride
+- `GET /api/rides/{id}` - Get specific ride
 - `PUT /api/rides/{id}` - Update ride
-- `DELETE /api/rides/{id}` - Deactivate ride
-- `GET /api/rides/my-rides` - Get user's rides
+- `DELETE /api/rides/{id}` - Delete ride
 
-### WebSocket
-- `/ws` - WebSocket endpoint for real-time chat
+### Chat Endpoints
+- `GET /api/chat/conversations` - Get user conversations
+- `GET /api/chat/messages/{rideId}` - Get messages for ride
+- `POST /api/chat/messages` - Send message
+
+### WebSocket Endpoints
+- `ws://localhost:8081/ws/chat` - Real-time chat connection
+
+
+## 📸 Screenshots
+
+### Home Page
+![Home Page](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Home+Page+-+Search+and+Discover+Rides)
+
+### Ride Creation
+![Create Ride](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Create+Ride+-+Post+New+Ride+Form)
+
+### Chat Interface
+![Chat Interface](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Chat+Interface+-+Real-time+Messaging)
+
+### User Profile
+![User Profile](https://via.placeholder.com/800x500/395B64/FFFFFF?text=User+Profile+-+Manage+Account+and+History)
+
+### Ride Cards
+![Ride Cards](https://via.placeholder.com/800x500/395B64/FFFFFF?text=Ride+Cards+-+Browse+Available+Rides)
+
+
+### Project Structure
+```
+viola/
+├── client-side/                 # React frontend
+│   ├── src/
+│   │   ├── components/         # Reusable components
+│   │   ├── pages/             # Page components
+│   │   ├── contexts/          # React contexts
+│   │   ├── services/          # API services
+│   │   └── utils/             # Utility functions
+│   └── public/                # Static assets
+├── server-side/                # Spring Boot backend
+│   ├── src/main/java/
+│   │   ├── controller/        # REST controllers
+│   │   ├── service/           # Business logic
+│   │   ├── repository/        # Data access layer
+│   │   ├── entity/            # Database entities
+│   │   ├── dto/               # Data transfer objects
+│   │   ├── security/          # Security configuration
+│   │   └── config/            # Application configuration
+│   └── src/main/resources/    # Configuration files
+└── docs/                      # Documentation
+```
 
 ## 🤝 Contributing
 
+We welcome contributions! Please follow these steps:
+
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit your changes: `git commit -am 'Add feature'`
-4. Push to the branch: `git push origin feature-name`
-5. Submit a pull request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
-
-- **Email**: support@viola.ac.in
-- **Phone**: +91-44-3993-9999
-- **In-App**: Use the chat feature in the application
-
-## 🙏 Acknowledgments
-
-- VIT University for supporting this project
-- Spring Boot team for the excellent framework
-- React team for the amazing frontend library
-- All contributors and beta testers
-
 ---
 
-**Built with ❤️ for VIT students by VIT students**
+**Made with ❤️ for the VIT Community**
+
+![ViOLA Logo](https://via.placeholder.com/200x200/395B64/FFFFFF?text=ViOLA)
