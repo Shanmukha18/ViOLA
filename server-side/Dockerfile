@@ -1,5 +1,5 @@
-# Use Maven with OpenJDK 24 as base image
-FROM maven:3.9.6-openjdk-24-slim
+# Use Maven with OpenJDK 17 as base image (more stable)
+FROM maven:3.9.6-openjdk-17-slim
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY src src
 RUN mvn clean package -DskipTests
 
 # Use a smaller runtime image
-FROM openjdk:24-jdk-slim
+FROM openjdk:17-jdk-slim
 
 # Set working directory
 WORKDIR /app
