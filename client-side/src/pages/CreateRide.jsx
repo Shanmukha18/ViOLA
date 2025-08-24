@@ -125,8 +125,8 @@ const CreateRide = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
-      {/* Header */}
-              <div className="flex items-center mb-6">
+        {/* Header */}
+        <div className="flex items-center mb-6">
           <button
             onClick={() => navigate('/')}
             className="mr-4 p-2 text-[#E7F6F2] hover:text-white hover:bg-[#395B64] rounded-full transition-colors"
@@ -136,212 +136,212 @@ const CreateRide = () => {
           <h1 className="text-3xl font-bold text-white">Post a New Ride</h1>
         </div>
 
-      {/* Form */}
-      <div className="gradient-card rounded-lg p-6 hover-lift">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Pickup Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="inline h-4 w-4 mr-1 text-[#395B64]" />
-              Pickup Location *
-            </label>
-            <input
-              type="text"
-              name="pickup"
-              value={formData.pickup}
-              onChange={handleInputChange}
-              placeholder="e.g., VIT Main Gate, Men's Hostel"
-              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
-              required
-            />
-          </div>
-
-          {/* Destination */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="inline h-4 w-4 mr-1 text-[#395B64]" />
-              Destination *
-            </label>
-            <input
-              type="text"
-              name="destination"
-              value={formData.destination}
-              onChange={handleInputChange}
-              placeholder="e.g., Katpadi Railway Station, Chennai Airport"
-              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
-              required
-            />
-          </div>
-
-          {/* Date and Time */}
-          <div className="grid grid-cols-2 gap-4">
+        {/* Form */}
+        <div className="gradient-card rounded-lg p-6 hover-lift">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Pickup Location */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clock className="inline h-4 w-4 mr-1 text-[#395B64] cursor-pointer" />
-                Ride Date *
+                <MapPin className="inline h-4 w-4 mr-1 text-[#395B64]" />
+                Pickup Location *
               </label>
               <input
-                type="date"
-                name="rideDate"
-                value={formData.rideDate}
+                type="text"
+                name="pickup"
+                value={formData.pickup}
                 onChange={handleInputChange}
-                min={(() => {
-                  const today = new Date();
-                  const year = today.getFullYear();
-                  const month = String(today.getMonth() + 1).padStart(2, '0');
-                  const day = String(today.getDate()).padStart(2, '0');
-                  return `${year}-${month}-${day}`;
-                })()}
-                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
+                placeholder="e.g., VIT Main Gate, Men's Hostel"
+                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
                 required
               />
             </div>
+
+            {/* Destination */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clock className="inline h-4 w-4 mr-1 text-[#395B64] cursor-pointer" />
-                Ride Time *
+                <MapPin className="inline h-4 w-4 mr-1 text-[#395B64]" />
+                Destination *
               </label>
-              <div className="flex gap-2">
+              <input
+                type="text"
+                name="destination"
+                value={formData.destination}
+                onChange={handleInputChange}
+                placeholder="e.g., Katpadi Railway Station, Chennai Airport"
+                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
+                required
+              />
+            </div>
+
+            {/* Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock className="inline h-4 w-4 mr-1 text-[#395B64] cursor-pointer" />
+                  Ride Date *
+                </label>
                 <input
-                  type="number"
-                  name="rideHour"
-                  value={formData.rideHour}
+                  type="date"
+                  name="rideDate"
+                  value={formData.rideDate}
                   onChange={handleInputChange}
-                  min="01"
-                  max="12"
-                  className="input-focus w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
+                  min={(() => {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  })()}
+                  className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
                   required
                 />
-                <span className="flex items-center text-gray-500">:</span>
-                <input
-                  type="number"
-                  name="rideMinute"
-                  value={formData.rideMinute}
-                  onChange={handleInputChange}
-                  min="00"
-                  max="59"
-                  className="input-focus w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
-                  required
-                />
-                <select
-                  name="ridePeriod"
-                  value={formData.ridePeriod}
-                  onChange={handleInputChange}
-                  className="input-focus w-1/3 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
-                  required
-                >
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock className="inline h-4 w-4 mr-1 text-[#395B64] cursor-pointer" />
+                  Ride Time *
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    name="rideHour"
+                    value={formData.rideHour}
+                    onChange={handleInputChange}
+                    min="01"
+                    max="12"
+                    className="input-focus w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
+                    required
+                  />
+                  <span className="flex items-center text-gray-500">:</span>
+                  <input
+                    type="number"
+                    name="rideMinute"
+                    value={formData.rideMinute}
+                    onChange={handleInputChange}
+                    min="00"
+                    max="59"
+                    className="input-focus w-1/4 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
+                    required
+                  />
+                  <select
+                    name="ridePeriod"
+                    value={formData.ridePeriod}
+                    onChange={handleInputChange}
+                    className="input-focus w-1/3 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
+                    required
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="inline h-4 w-4 mr-1 text-[#395B64]">₹</span>
-              Price *
-            </label>
-            <input
-              type="text"
-              name="price"
-              value={formData.price}
-              onChange={handleInputChange}
-              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
-              required
-            />
-          </div>
+            {/* Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <span className="inline h-4 w-4 mr-1 text-[#395B64]">₹</span>
+                Price *
+              </label>
+              <input
+                type="text"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
+                required
+              />
+            </div>
 
-          {/* Gender Preference */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Users className="inline h-4 w-4 mr-1 text-[#395B64]" />
-              Gender Preference *
-            </label>
-            <select
-              name="genderPreference"
-              value={formData.genderPreference}
-              onChange={handleInputChange}
-              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
-              required
-            >
-              <option value="ANYONE">Anyone</option>
-              <option value="FEMALES_ONLY">Females Only</option>
-              <option value="MALES_ONLY">Males Only</option>
-            </select>
-          </div>
+            {/* Gender Preference */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Users className="inline h-4 w-4 mr-1 text-[#395B64]" />
+                Gender Preference *
+              </label>
+              <select
+                name="genderPreference"
+                value={formData.genderPreference}
+                onChange={handleInputChange}
+                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent cursor-pointer"
+                required
+              >
+                <option value="ANYONE">Anyone</option>
+                <option value="FEMALES_ONLY">Females Only</option>
+                <option value="MALES_ONLY">Males Only</option>
+              </select>
+            </div>
 
-          {/* Negotiable */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="negotiable"
-              checked={formData.negotiable}
-              onChange={handleInputChange}
-              className="h-4 w-4 text-[#395B64] focus:ring-[#395B64] border-gray-300 rounded cursor-pointer"
-            />
-            <label className="ml-2 block text-sm text-gray-700">
-              Price is negotiable
-            </label>
-          </div>
+            {/* Negotiable */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="negotiable"
+                checked={formData.negotiable}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-[#395B64] focus:ring-[#395B64] border-gray-300 rounded cursor-pointer"
+              />
+              <label className="ml-2 block text-sm text-gray-700">
+                Price is negotiable
+              </label>
+            </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FileText className="inline h-4 w-4 mr-1 text-[#395B64]" />
-              Description (Optional)
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Add any additional details about your ride..."
-              rows="4"
-              className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
-            />
-          </div>
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FileText className="inline h-4 w-4 mr-1 text-[#395B64]" />
+                Description (Optional)
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Add any additional details about your ride..."
+                rows="4"
+                className="input-focus w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent"
+              />
+            </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#395B64] transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={createRideMutation.isPending}
-              className="btn-primary text-white px-6 py-2 rounded-md text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center cursor-pointer"
-            >
-              {createRideMutation.isPending ? (
-                <>
-                  <div className="loading-pulse rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Post Ride
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+            {/* Submit Button */}
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#395B64] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={createRideMutation.isPending}
+                className="btn-primary text-white px-6 py-2 rounded-md text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center cursor-pointer"
+              >
+                {createRideMutation.isPending ? (
+                  <>
+                    <div className="loading-pulse rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Post Ride
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
 
-      {/* Tips */}
-      <div className="mt-6 gradient-card rounded-lg p-4 hover-lift">
-        <h3 className="text-sm font-medium text-[#2C3333] mb-2">Tips for a great ride post:</h3>
-        <ul className="text-sm text-[#395B64] space-y-1">
-          <li>• Be specific about pickup and drop locations</li>
-          <li>• Set the correct price of the ride</li>
-          <li>• Add helpful details in the description</li>
-          <li>• Include spaces between words correctly for locations</li>
-        </ul>
-      </div>
+        {/* Tips */}
+        <div className="mt-6 gradient-card rounded-lg p-4 hover-lift">
+          <h3 className="text-sm font-medium text-[#2C3333] mb-2">Tips for a great ride post:</h3>
+          <ul className="text-sm text-[#395B64] space-y-1">
+            <li>• Be specific about pickup and drop locations</li>
+            <li>• Set the correct price of the ride</li>
+            <li>• Add helpful details in the description</li>
+            <li>• Include spaces between words correctly for locations</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

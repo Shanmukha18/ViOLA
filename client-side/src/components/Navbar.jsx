@@ -9,8 +9,6 @@ const Navbar = () => {
   const { hasUnreadMessages } = useUnread();
   const location = useLocation();
 
-
-
   const isActive = (path) => {
     return location.pathname === path;
   };
@@ -102,8 +100,6 @@ const Navbar = () => {
               <User className="h-4 w-4 mr-1 text-white transition-all duration-300" />
               <span>Profile</span>
             </Link>
-            
-
           </div>
         </div>
       </div>

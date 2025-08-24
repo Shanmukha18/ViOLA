@@ -85,7 +85,7 @@ const RideCard = ({ ride }) => {
       {/* Header with owner info */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full gradient-secondary flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full gradient-secondary flex items-center justify-center flex-shrink-0">
             <User className="h-5 w-5 text-white" />
           </div>
           <div>

@@ -490,265 +490,265 @@ const Chat = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
-      <style>{scrollbarStyles}</style>
-      {/* Chat Header with Connection Status */}
-      <div className="mb-4 p-4 gradient-card rounded-lg shadow-md">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
-          
-          {/* Connection Status Indicator */}
-          <div className="flex items-center space-x-2">
-            {isConnecting && (
-              <div className="flex items-center space-x-1 text-yellow-600">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>
-                <span className="text-xs">Connecting...</span>
-              </div>
-            )}
-            {isConnected && (
-              <div className="flex items-center space-x-1 text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-xs">Connected</span>
-              </div>
-            )}
-            {!isConnected && !isConnecting && (
-              <div className="flex items-center space-x-1 text-red-600">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-xs">Reconnecting...</span>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {connectionError && (
-          <div className="mt-2 flex items-center space-x-2 text-red-600">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">Connection lost. Reconnecting automatically...</span>
-          </div>
-        )}
-      </div>
-
-      <div className="gradient-card rounded-lg shadow-md overflow-hidden h-[700px]">
-        <div 
-          className="flex h-full"
-          onWheel={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          {/* Conversations List - Fixed width */}
-          <div className="w-80 border-r border-gray-200 bg-[#E7F6F2] flex flex-col flex-shrink-0">
-            <div className="p-4 border-b border-gray-200 flex-shrink-0 gradient-card">
-              <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
-            </div>
-            <div 
-              className="flex-1 overflow-y-auto custom-scrollbar force-scrollbar"
-              onWheel={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              {conversations.length > 0 ? (
-                conversations.map((conversation) => {
-                  const isUnread = conversation.hasUnreadMessages;
-                  return (
-                    <div
-                      key={conversation.id}
-                      onClick={() => handleConversationSelect(conversation)}
-                      className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
-                        selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
-                                                 } ${isUnread ? 'bg-[#E7F6F2] border-l-4 border-l-[#395B64]' : ''}`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="h-10 w-10 rounded-full bg-[#E7F6F2] flex items-center justify-center flex-shrink-0">
-                          <User className="h-5 w-5 text-[#395B64]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className={`text-sm font-medium truncate ${
-                              isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
-                            }`}>
-                              {conversation.user.name}
-                            </h3>
-                            <span className="text-xs text-gray-500 flex-shrink-0">
-                              {formatTime(conversation.lastMessageTime)}
-                            </span>
-                          </div>
-                          {conversation.isOwner && (
-                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-1">
-                              Your Ride
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-4 text-center text-gray-500">
-                  {isConnected ? (
-                    <div>
-                      <MessageCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                      <p className="text-sm">No conversations yet</p>
-                      <p className="text-xs">Start chatting about rides!</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <WifiOff className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                      <p className="text-sm">Not connected to chat</p>
-                      <p className="text-xs">Connect to start messaging</p>
-                    </div>
-                  )}
+        <style>{scrollbarStyles}</style>
+        {/* Chat Header with Connection Status */}
+        <div className="mb-4 p-4 gradient-card rounded-lg shadow-md">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+            
+            {/* Connection Status Indicator */}
+            <div className="flex items-center space-x-2">
+              {isConnecting && (
+                <div className="flex items-center space-x-1 text-yellow-600">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>
+                  <span className="text-xs">Connecting...</span>
+                </div>
+              )}
+              {isConnected && (
+                <div className="flex items-center space-x-1 text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs">Connected</span>
+                </div>
+              )}
+              {!isConnected && !isConnecting && (
+                <div className="flex items-center space-x-1 text-red-600">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs">Reconnecting...</span>
                 </div>
               )}
             </div>
           </div>
+          
+          {connectionError && (
+            <div className="mt-2 flex items-center space-x-2 text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Connection lost. Reconnecting automatically...</span>
+            </div>
+          )}
+        </div>
 
-          {/* Chat Area - Takes remaining space */}
-          <div className="flex-1 flex flex-col chat-container">
-            {selectedConversation ? (
-              <>
-                {/* Chat Header - Fixed at top */}
-                <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-[#E7F6F2] flex items-center justify-center">
-                      <User className="h-5 w-5 text-[#395B64]" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {selectedConversation.user.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {selectedConversation.ride.pickup} → {selectedConversation.ride.destination}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {selectedConversation.isOwner && (
-                        <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
-                          Your Ride
-                        </span>
-                      )}
-                      <button
-                        onClick={scrollToBottomButton}
-                        className="px-3 py-1 text-xs bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors cursor-pointer"
-                        title="Scroll to bottom"
+        <div className="gradient-card rounded-lg shadow-md overflow-hidden h-[700px]">
+          <div 
+            className="flex h-full"
+            onWheel={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {/* Conversations List - Fixed width */}
+            <div className="w-80 border-r border-gray-200 bg-[#E7F6F2] flex flex-col flex-shrink-0">
+              <div className="p-4 border-b border-gray-200 flex-shrink-0 gradient-card">
+                <h3 className="text-lg font-semibold text-gray-900">Messages</h3>
+              </div>
+              <div 
+                className="flex-1 overflow-y-auto custom-scrollbar force-scrollbar"
+                onWheel={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                {conversations.length > 0 ? (
+                  conversations.map((conversation) => {
+                    const isUnread = conversation.hasUnreadMessages;
+                    return (
+                      <div
+                        key={conversation.id}
+                        onClick={() => handleConversationSelect(conversation)}
+                        className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${
+                          selectedConversation?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                        } ${isUnread ? 'bg-[#E7F6F2] border-l-4 border-l-[#395B64]' : ''}`}
                       >
-                        ↓
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Messages - Scrollable area */}
-                <div 
-                  className="flex-1 p-4 space-y-4 bg-gray-50 custom-scrollbar force-scrollbar chat-messages"
-                  onWheel={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  {isLoadingMessages ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#395B64] mx-auto mb-2"></div>
-                        <p className="text-sm text-gray-500">Loading messages...</p>
-                      </div>
-                    </div>
-                  ) : messages.length > 0 ? (
-                    messages.map((message, index) => {
-                      // Check if this message is from the current user
-                      // Handle both ChatMessage (senderId string) and MessageDto (sender object) structures
-                      let messageSenderId;
-                      if (message.senderId) {
-                        // ChatMessage structure (WebSocket)
-                        messageSenderId = message.senderId;
-                      } else if (message.sender && message.sender.id) {
-                        // MessageDto structure (API)
-                        messageSenderId = message.sender.id.toString();
-                      } else {
-                        // Fallback
-                        messageSenderId = null;
-                      }
-                      
-                      const currentUserIdString = user.id.toString();
-                      const isOwnMessage = messageSenderId === currentUserIdString;
-                      
-                      const showDate = index === 0 || 
-                        formatDate(message.createdAt || message.timestamp) !== formatDate(messages[index - 1].createdAt || messages[index - 1].timestamp);
-
-                      return (
-                        <div key={`${message.id || 'temp'}-${messageSenderId || 'unknown'}-${index}-${message.createdAt || message.timestamp}`}>
-                          {showDate && (
-                            <div className="text-center mb-4">
-                              <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
-                                {formatDate(message.createdAt || message.timestamp)}
+                        <div className="flex items-start space-x-3">
+                          <div className="h-10 w-10 rounded-full bg-[#E7F6F2] flex items-center justify-center flex-shrink-0">
+                            <User className="h-5 w-5 text-[#395B64]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h3 className={`text-sm font-medium truncate ${
+                                isUnread ? 'font-bold text-gray-900' : 'text-gray-900'
+                              }`}>
+                                {conversation.user.name}
+                              </h3>
+                              <span className="text-xs text-gray-500 flex-shrink-0">
+                                {formatTime(conversation.lastMessageTime)}
                               </span>
                             </div>
-                          )}
-                          <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              isOwnMessage 
-                                ? 'bg-[#395B64] text-white shadow-lg' 
-                                : 'bg-[#E7F6F2] text-[#2C3333] border border-[#A5C9CA]'
-                            } ${message.isOptimistic ? 'opacity-70' : ''}`}>
-                              <p className="text-sm">{message.content}</p>
-                              <p className={`text-xs mt-1 ${
-                                isOwnMessage ? 'text-[#A5C9CA]' : 'text-[#395B64]'
-                              }`}>
-                                {formatTime(message.createdAt || message.timestamp)}
-                                {message.isOptimistic && ' (sending...)'}
-                              </p>
-                            </div>
+                            {conversation.isOwner && (
+                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-1">
+                                Your Ride
+                              </span>
+                            )}
                           </div>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-gray-500">
-                        <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
-                        <p className="text-sm">Start the conversation!</p>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    {isConnected ? (
+                      <div>
+                        <MessageCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm">No conversations yet</p>
+                        <p className="text-xs">Start chatting about rides!</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <WifiOff className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm">Not connected to chat</p>
+                        <p className="text-xs">Connect to start messaging</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chat Area - Takes remaining space */}
+            <div className="flex-1 flex flex-col chat-container">
+              {selectedConversation ? (
+                <>
+                  {/* Chat Header - Fixed at top */}
+                  <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-full bg-[#E7F6F2] flex items-center justify-center">
+                        <User className="h-5 w-5 text-[#395B64]" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {selectedConversation.user.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {selectedConversation.ride.pickup} → {selectedConversation.ride.destination}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {selectedConversation.isOwner && (
+                          <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+                            Your Ride
+                          </span>
+                        )}
+                        <button
+                          onClick={scrollToBottomButton}
+                          className="px-3 py-1 text-xs bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors cursor-pointer"
+                          title="Scroll to bottom"
+                        >
+                          ↓
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Message Input - Fixed at bottom */}
-                <div className="p-4 border-t border-gray-200 gradient-card flex-shrink-0">
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      placeholder={isConnected ? "Type your message..." : "Connect to chat..."}
-                      disabled={!isConnected}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
-                                            <button
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim() || !isConnected}
-                          className="px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                      <Send className="h-4 w-4" />
-                    </button>
                   </div>
-                  {!isConnected && (
-                    <p className="text-xs text-gray-500 mt-2 text-center">
-                      Connect to WebSocket to send messages
-                    </p>
-                  )}
+
+                  {/* Messages - Scrollable area */}
+                  <div 
+                    className="flex-1 p-4 space-y-4 bg-gray-50 custom-scrollbar force-scrollbar chat-messages"
+                    onWheel={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    {isLoadingMessages ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#395B64] mx-auto mb-2"></div>
+                          <p className="text-sm text-gray-500">Loading messages...</p>
+                        </div>
+                      </div>
+                    ) : messages.length > 0 ? (
+                      messages.map((message, index) => {
+                        // Check if this message is from the current user
+                        // Handle both ChatMessage (senderId string) and MessageDto (sender object) structures
+                        let messageSenderId;
+                        if (message.senderId) {
+                          // ChatMessage structure (WebSocket)
+                          messageSenderId = message.senderId;
+                        } else if (message.sender && message.sender.id) {
+                          // MessageDto structure (API)
+                          messageSenderId = message.sender.id.toString();
+                        } else {
+                          // Fallback
+                          messageSenderId = null;
+                        }
+                        
+                        const currentUserIdString = user.id.toString();
+                        const isOwnMessage = messageSenderId === currentUserIdString;
+                        
+                        const showDate = index === 0 || 
+                          formatDate(message.createdAt || message.timestamp) !== formatDate(messages[index - 1].createdAt || messages[index - 1].timestamp);
+
+                        return (
+                          <div key={`${message.id || 'temp'}-${messageSenderId || 'unknown'}-${index}-${message.createdAt || message.timestamp}`}>
+                            {showDate && (
+                              <div className="text-center mb-4">
+                                <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
+                                  {formatDate(message.createdAt || message.timestamp)}
+                                </span>
+                              </div>
+                            )}
+                            <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                isOwnMessage 
+                                  ? 'bg-[#395B64] text-white shadow-lg' 
+                                  : 'bg-[#E7F6F2] text-[#2C3333] border border-[#A5C9CA]'
+                              } ${message.isOptimistic ? 'opacity-70' : ''}`}>
+                                <p className="text-sm">{message.content}</p>
+                                <p className={`text-xs mt-1 ${
+                                  isOwnMessage ? 'text-[#A5C9CA]' : 'text-[#395B64]'
+                                }`}>
+                                  {formatTime(message.createdAt || message.timestamp)}
+                                  {message.isOptimistic && ' (sending...)'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center text-gray-500">
+                          <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
+                          <p className="text-sm">Start the conversation!</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Message Input - Fixed at bottom */}
+                  <div className="p-4 border-t border-gray-200 gradient-card flex-shrink-0">
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        placeholder={isConnected ? "Type your message..." : "Connect to chat..."}
+                        disabled={!isConnected}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#395B64] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                      <button
+                        onClick={handleSendMessage}
+                        disabled={!newMessage.trim() || !isConnected}
+                        className="px-4 py-2 bg-[#395B64] text-white rounded-md hover:bg-[#2C3333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {!isConnected && (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Connect to WebSocket to send messages
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
+                    <p className="text-gray-600">Choose a conversation from the list to start chatting</p>
+                  </div>
                 </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
-                  <p className="text-gray-600">Choose a conversation from the list to start chatting</p>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );
