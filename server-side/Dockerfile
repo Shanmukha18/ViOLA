@@ -1,5 +1,5 @@
-# Use Maven with OpenJDK 17 as base image (more stable)
-FROM maven:3.9.6-openjdk-17-slim
+# Use standard Maven image with OpenJDK 17
+FROM maven:3.9.6-eclipse-temurin-17
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY src src
 RUN mvn clean package -DskipTests
 
 # Use a smaller runtime image
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre-jammy
 
 # Set working directory
 WORKDIR /app
