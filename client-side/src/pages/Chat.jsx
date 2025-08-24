@@ -58,13 +58,19 @@ const Chat = () => {
   // Generate a unique session ID for this browser instance
   const sessionId = useRef(Math.random().toString(36).substr(2, 9)).current;
 
-  // Utility function to normalize timestamps
+  // Utility function to normalize timestamps and convert to IST
   const normalizeTimestamp = (date) => {
     if (!date) return new Date();
     
     try {
       // Handle both ISO string and Date object
-      return typeof date === 'string' ? new Date(date) : date;
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      // Convert UTC to IST (UTC+5:30)
+      const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+      const istDate = new Date(dateObj.getTime() + istOffset);
+      
+      return istDate;
     } catch (error) {
       console.error('Error normalizing timestamp:', error);
       return new Date();
@@ -431,7 +437,12 @@ const Chat = () => {
     
     try {
       const dateObj = normalizeTimestamp(date);
-      return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Format time in IST
+      return dateObj.toLocaleTimeString('en-IN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      });
     } catch (error) {
       console.error('Error formatting time:', error);
       return '';
@@ -445,9 +456,13 @@ const Chat = () => {
       const messageDate = normalizeTimestamp(date);
       const today = new Date();
       
+      // Convert today to IST for comparison
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const todayIST = new Date(today.getTime() + istOffset);
+      
       // Reset time to compare only dates
       const messageDateOnly = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
-      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayOnly = new Date(todayIST.getFullYear(), todayIST.getMonth(), todayIST.getDate());
       
       const diffTime = todayOnly.getTime() - messageDateOnly.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -457,9 +472,14 @@ const Chat = () => {
       } else if (diffDays === 1) {
         return 'Yesterday';
       } else if (diffDays < 7) {
-        return messageDate.toLocaleDateString([], { weekday: 'long' });
+        return messageDate.toLocaleDateString('en-IN', { 
+          weekday: 'long',
+          timeZone: 'Asia/Kolkata'
+        });
       } else {
-        return messageDate.toLocaleDateString();
+        return messageDate.toLocaleDateString('en-IN', {
+          timeZone: 'Asia/Kolkata'
+        });
       }
     } catch (error) {
       console.error('Error formatting date:', error);

@@ -114,9 +114,8 @@ class ChatService {
             senderId: senderId,
             receiverId: receiverId,
             rideId: rideId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString() // Send UTC timestamp
         };
-
 
         this.stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(chatMessage));
 

@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,14 +51,15 @@ public class ChatService {
                 throw new RuntimeException("Cannot send message to yourself");
             }
 
-            // Create and save message
+            // Create and save message with UTC timestamp
             Message message = new Message();
             message.setContent(chatMessage.getContent());
             message.setSender(sender);
             message.setReceiver(receiver);
             message.setRide(ride);
             message.setIsRead(false);
-            message.setCreatedAt(LocalDateTime.now());
+            // Use UTC time to ensure consistency across different server locations
+            message.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
 
             Message savedMessage = messageRepository.save(message);
             log.info("Saved message: {} from {} to {}", savedMessage.getId(), sender.getId(), receiver.getId());
