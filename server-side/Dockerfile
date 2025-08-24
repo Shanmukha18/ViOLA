@@ -1,28 +1,32 @@
-# Use OpenJDK 24 as base image
-FROM openjdk:24-jdk-slim
+# Use Maven with OpenJDK 24 as base image
+FROM maven:3.9.6-openjdk-24-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml
-COPY mvnw .
-COPY .mvn .mvn
+# Copy pom.xml first for better caching
 COPY pom.xml .
 
-# Make mvnw executable
-RUN chmod +x mvnw
-
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copy source code
 COPY src src
 
 # Build the application
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
+
+# Use a smaller runtime image
+FROM openjdk:24-jdk-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built JAR from the build stage
+COPY --from=0 /app/target/server-side-0.0.1-SNAPSHOT.jar app.jar
 
 # Expose port
 EXPOSE 8081
 
 # Run the application
-CMD ["java", "-jar", "target/server-side-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "app.jar"]
